@@ -1,0 +1,18 @@
+# Local development directories
+.vscode/
+.idea/
+.claude
+!claude/.claude
+
+# Local configuration overrides
+.zshrc.local
+
+# Secrets
+.env
+.env.*
+*.local.env
+
+# Commercial fonts (purchase from typography.com)
+fonts/
+
+CLAUDE.md

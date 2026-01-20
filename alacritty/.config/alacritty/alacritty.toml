@@ -1,0 +1,25 @@
+general.import = [ "~/.config/omarchy/current/theme/alacritty.toml" ]
+
+[env]
+TERM = "xterm-256color"
+
+[terminal.shell]
+program = "/bin/zsh"
+
+[font]
+normal = { family = "OperatorMonoLig Nerd Font", style = "Light" }
+bold = { family = "OperatorMonoLig Nerd Font", style = "Regular" }
+italic = { family = "OperatorMonoLig Nerd Font", style = "Italic" }
+size = 14
+offset.y = 14
+glyph_offset.y = 7
+
+[window]
+padding.x = 25
+decorations = "None"
+
+[keyboard]
+bindings = [
+{ key = "Insert", mods = "Shift", action = "Paste" },
+{ key = "Insert", mods = "Control", action = "Copy" }
+]
