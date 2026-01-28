@@ -1,4 +1,15 @@
+os:
+  edit: 'nvr --remote-tab {{filename}}'
+  editAtLine: 'nvr --remote-tab +{{line}} {{filename}}'
+  editAtLineAndWait: 'nvr --remote-tab-wait +{{line}} {{filename}}'
+  editInTerminal: false
+  openDirInEditor: 'nvr --remote-tab {{dir}}'
+git:
+  pagers:
+    - colorArg: always
+      pager: diff-so-fancy
 gui:
+  showFileTree: false
   theme:
     activeBorderColor:
       - '#89b4fa'

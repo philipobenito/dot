@@ -18,3 +18,4 @@ eval "$(starship init zsh)"
 
 [ -f "$ZSH_CONFIG_DIR/zoxide.zsh" ] && source "$ZSH_CONFIG_DIR/zoxide.zsh"
 [ -f "$ZSH_CONFIG_DIR/opencode.zsh" ] && source "$ZSH_CONFIG_DIR/opencode.zsh"
+[ -f "$ZSH_CONFIG_DIR/lazy.zsh" ] && source "$ZSH_CONFIG_DIR/lazy.zsh"

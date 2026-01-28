@@ -42,6 +42,8 @@ PACKAGES=(
 
     # Development tools
     "neovim:neovim:neovim:neovim:neovim"
+    "git-delta:git-delta:git-delta:git-delta:git-delta"
+    "diff-so-fancy:diff-so-fancy:diff-so-fancy:diff-so-fancy:diff-so-fancy"
     "lazygit:lazygit:lazygit:-:lazygit"
     "lazydocker:lazydocker:lazydocker:-:lazydocker"
     "mise:mise:AUR:mise:mise:mise"

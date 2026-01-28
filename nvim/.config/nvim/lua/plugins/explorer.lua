@@ -16,6 +16,9 @@ return {
             ignored = true,
             jump = { close = true },
           },
+          files = {
+            hidden = true,
+          },
         },
       },
     },

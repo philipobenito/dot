@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [],
+    "deny": [
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(git clean -f:*)",
+      "Bash(git checkout .:*)",
+      "Bash(git restore .:*)",
+      "Bash(git branch -D:*)",
+      "Bash(git rebase:*)"
+    ],
+    "defaultMode": "bypassPermissions"
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "bash /Users/phil.bennett/.config/statusline-command.sh"
+  },
+  "promptSuggestionEnabled": false
+}
