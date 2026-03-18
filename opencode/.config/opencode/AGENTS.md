@@ -23,9 +23,9 @@ Examples:
 - `behaviour` not `behavior`
 - `organise` not `organize`
 
-### 1.2 Emoji Usage
+### 1.2 Emoji, Em dash, and En dash Usage
 
-You MUST NOT use emojis, unicode symbols, or special characters in:
+You MUST NOT use emojis, em dash (—), en dash (–), double hyphen (--), unicode symbols, or special characters in:
 - Code or comments
 - Commit messages
 - Documentation
@@ -326,3 +326,4 @@ These guidelines **MUST** be followed unless:
 3. The user explicitly requests a different approach
 
 When in doubt, prioritise clarity, maintainability, and consistency with the existing codebase.
+

@@ -13,13 +13,15 @@
       "Bash(git restore .:*)",
       "Bash(git branch -D:*)",
       "Bash(git rebase:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git add:*)"
     ],
     "defaultMode": "bypassPermissions"
   },
+  "model": "opus[1m]",
   "statusLine": {
     "type": "command",
-    "command": "bash /Users/phil.bennett/.config/statusline-command.sh"
+    "command": "bash ~/.config/statusline-command.sh"
   },
   "enabledPlugins": {
     "php-lsp@claude-plugins-official": true,
