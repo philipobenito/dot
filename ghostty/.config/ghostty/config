@@ -3,7 +3,7 @@ config-file = ?~/.config/omarchy/current/theme/ghostty.conf
 
 # Font
 font-family = OperatorMonoLig Nerd Font
-font-size = 13
+font-size = 14
 adjust-cell-height = 14
 
 # Enable ligatures (enabled by default, but explicit)
@@ -36,3 +36,9 @@ keybind = super+control+shift+alt+arrow_right=resize_split:right,100
 
 # Slowdown mouse scrolling
 mouse-scroll-multiplier = 0.95
+
+# Copy on select
+copy-on-select = true
+
+unfocused-split-opacity = 0.8
+unfocused-split-fill = #000000
