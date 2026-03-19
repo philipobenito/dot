@@ -313,6 +313,7 @@ Done!
 
 **Required workflow skills:**
 - **brainstorming** or **guided-brainstorming** - Creates the design this skill implements
+- **work-on-ticket** - Recovers design context from tickets in new sessions and feeds it into this skill
 - **requesting-code-review** - Code review template for reviewer subagents
 
 **Subagents should use:**

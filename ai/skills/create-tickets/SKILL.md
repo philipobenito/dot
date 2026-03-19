@@ -54,10 +54,42 @@ The design summary from brainstorming contains architecture, components, data fl
 
 | Design Element                                | Ticket Type                                     |
 |-----------------------------------------------|-------------------------------------------------|
-| Overall goal                                  | Epic or parent issue                            |
+| Overall goal + full design                    | Epic or parent issue                            |
 | Independent component                         | Individual ticket                               |
 | Cross-cutting concern (auth, logging, config) | Individual ticket                               |
 | Integration between components                | Individual ticket, depends on component tickets |
+
+### Epic Must Contain the Full Design
+
+The epic/parent ticket is the bridge between the brainstorming session and future implementation sessions. It **MUST** contain the complete design summary in its body so that the design context survives across session boundaries.
+
+Structure the epic body as:
+
+```markdown
+## Goal
+
+[One-paragraph summary of what this epic delivers]
+
+## Design
+
+[The full design summary from brainstorming, including:
+- Architecture and key components
+- Interfaces and data flow
+- Technical decisions and trade-offs
+- Error handling approach
+- Testing strategy
+- Anything else that emerged from the design conversation]
+
+## Tickets
+
+- [Ticket 1 title] - #N
+- [Ticket 2 title] - #N
+- ...
+```
+
+The "## Design" section is critical. The work-on-ticket skill reads this section when picking up individual tickets in new sessions to recover the architectural context. Without it, future sessions lose the design rationale that informed the decomposition.
+
+Do NOT link to external files or conversation artefacts for the design. The epic body is the single source of truth.
 
 ### Ticket Content
 
@@ -146,6 +178,8 @@ Save to the project root or a location the user specifies.
 
 ## After Creation
 
+Once all tickets are created, update the epic body's "## Tickets" section with the actual ticket references (issue numbers, Jira keys, etc.) and links.
+
 Report:
 
 - Number of tickets created
@@ -154,3 +188,5 @@ Report:
 - Dependencies between tickets
 
 Ask if the user wants to adjust anything (reorder, split, merge, relabel).
+
+Remind the user: "To pick up any of these tickets in a new session, just reference the ticket (e.g. 'work on #42') and the work-on-ticket skill will recover the design context from the epic and start implementation."

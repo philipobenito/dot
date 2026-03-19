@@ -78,14 +78,18 @@ digraph brainstorming {
     "Review passed?" -> "User approves?" [label="approved"];
     "User approves?" -> "Ask clarifying questions" [label="rethink needed"];
     "User approves?" -> "What next?" [label="approved"];
-    "Invoke create-tickets skill" [shape=doublecircle];
+    "Invoke create-tickets skill" [shape=box];
     "Invoke subagent-driven-development skill" [shape=doublecircle];
     "What next?" -> "Invoke create-tickets skill" [label="create tickets"];
     "What next?" -> "Invoke subagent-driven-development skill" [label="start work"];
+    "Design embedded in epic" [shape=box];
+    "New session: work-on-ticket" [shape=doublecircle];
+    "Invoke create-tickets skill" -> "Design embedded in epic";
+    "Design embedded in epic" -> "New session: work-on-ticket" [label="future session"];
 }
 ```
 
-**The terminal states are create-tickets or subagent-driven-development.** After brainstorming, the only skills you invoke are create-tickets (to track work as tickets) or subagent-driven-development (to start building).
+**The terminal states are create-tickets or subagent-driven-development.** After brainstorming, the only skills you invoke are create-tickets (to track work as tickets) or subagent-driven-development (to start building). When create-tickets is chosen, the design is embedded in the epic body so that work-on-ticket can recover it in a future session.
 
 ## The Process
 
@@ -163,7 +167,7 @@ After the review loop passes, present the final design summary to the user and g
 
 Once the user approves the reviewed design, ask what they'd like to do:
 
-**Create tickets:** Invoke the create-tickets skill to break the design into tickets in the project's ticketing system. Use this when the work isn't happening right now, needs tracking, or involves multiple people.
+**Create tickets:** Invoke the create-tickets skill to break the design into tickets in the project's ticketing system. Use this when the work isn't happening right now, needs tracking, or involves multiple people. The full design is embedded in the epic body so that work-on-ticket can recover it in a future session.
 
 **Start implementation:** Invoke the subagent-driven-development skill to begin building. This decomposes the design into tasks and executes them with subagents. Use this when the user wants to start building immediately.
 
