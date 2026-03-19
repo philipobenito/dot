@@ -97,6 +97,8 @@ digraph guided_brainstorming {
 
 This replaces brainstorming's silent "explore project context" step. Read the codebase, then present what you found in a structured way.
 
+**Start with the areas relevant to the brief.** Present the architecture broadly but explore in depth only the subsystems the feature will touch. If the user wants to understand more, the checkpoint question below invites them to ask.
+
 **Architecture overview:**
 - How the project is organised (directory structure, key entry points)
 - The main patterns in use (e.g. MVC, event-driven, plugin architecture)
@@ -108,7 +110,7 @@ This replaces brainstorming's silent "explore project context" step. Read the co
 - How those parts work and interact
 - Any existing code that does something similar to what's being proposed
 
-**Conventions:**
+**Conventions (in the relevant areas):**
 - Naming conventions, file organisation patterns
 - Testing approach (what framework, how tests are structured, where they live)
 - Error handling patterns
@@ -116,7 +118,7 @@ This replaces brainstorming's silent "explore project context" step. Read the co
 
 After presenting each section, ask: "Does this make sense? Anything you'd like me to dig deeper into before we move on?"
 
-If the user asks follow-up questions, explore further. This phase is not rushed - building the mental model is the point.
+If the user asks follow-up questions, explore further. Building the mental model is the point, but let the user steer which areas deserve depth rather than exhaustively mapping everything.
 
 **Scope check:** Before moving to questions, assess scope the same way brainstorming does. If the request covers multiple independent subsystems, flag it and help decompose.
 

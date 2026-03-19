@@ -54,7 +54,9 @@ digraph committee_brainstorming {
     "Enter plan mode" [shape=box];
     "Confirm brief with user" [shape=box];
     "Brief correct?" [shape=diamond];
-    "Explore project context" [shape=box];
+    "Explore project context\n(stay narrow)" [shape=box];
+    "Context sufficient?" [shape=diamond];
+    "Ask user for guidance" [shape=box];
     "Identify design decisions" [shape=box];
     "Dispatch committee\n(3 subagents)" [shape=box];
     "Synthesise consensus" [shape=box];
@@ -72,8 +74,11 @@ digraph committee_brainstorming {
     "Enter plan mode" -> "Confirm brief with user";
     "Confirm brief with user" -> "Brief correct?";
     "Brief correct?" -> "Confirm brief with user" [label="user corrects"];
-    "Brief correct?" -> "Explore project context" [label="confirmed"];
-    "Explore project context" -> "Identify design decisions";
+    "Brief correct?" -> "Explore project context\n(stay narrow)" [label="confirmed"];
+    "Explore project context\n(stay narrow)" -> "Context sufficient?";
+    "Context sufficient?" -> "Identify design decisions" [label="yes"];
+    "Context sufficient?" -> "Ask user for guidance" [label="no, too broad"];
+    "Ask user for guidance" -> "Explore project context\n(stay narrow)";
     "Identify design decisions" -> "Dispatch committee\n(3 subagents)";
     "Dispatch committee\n(3 subagents)" -> "Synthesise consensus";
     "Synthesise consensus" -> "More decisions?";
@@ -117,12 +122,17 @@ Once confirmed, the user is hands-off until the design is ready for review.
 
 ### Phase 2: Explore Project Context
 
-Silently explore the codebase:
+Silently explore the codebase, but stay focused on what the brief requires. Everything gathered here gets passed to every committee member in every round, so unnecessary context dilutes focus and wastes capacity.
 
-- Directory structure, key entry points, patterns in use
-- Recent commits and active work
-- Existing code related to the proposed feature
-- Testing patterns, configuration approach, conventions
+**Start narrow:**
+- Directory structure and key entry points relevant to the brief
+- Existing code that directly relates to the proposed feature
+- Patterns used in the areas the feature will touch
+- Testing patterns and conventions in those same areas
+
+**Do not exhaustively map the entire codebase.** Only explore subsystems the feature will interact with.
+
+**Self-assess after the initial pass:** Can you identify the key design decisions and the relevant code? If yes, move to Phase 3. If the feature touches more than 3 subsystems, or you cannot confidently determine what code is relevant, surface what you have found to the user using `{{ASK_USER_TOOL}}` and ask for guidance on where to focus. This is the only other point (besides Phase 1) where you may ask the user a question.
 
 This context will be provided to each committee member so they can make informed decisions.
 

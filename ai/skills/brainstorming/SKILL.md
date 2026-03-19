@@ -104,9 +104,10 @@ digraph brainstorming {
 
 **Understanding the idea:**
 
-- Check out the current project state first (files, docs, recent commits)
+- Check out the current project state first, but stay focused on the areas relevant to the user's request. Do not exhaustively map the entire codebase. Explore the subsystems the feature will interact with.
 - Before asking detailed questions, assess scope: if the request describes multiple independent subsystems (e.g. "build a platform with chat, file storage, billing, and analytics"), flag this immediately. Don't spend questions refining details of a project that needs to be decomposed first.
 - If the project is too large for a single design, help the user decompose into subprojects: what are the independent pieces, how do they relate, what order should they be built? Then brainstorm the first subproject through the normal design flow. Each subproject gets its own design, plan, and implementation cycle.
+- If after initial exploration the feature touches more areas than expected (more than ~3 subsystems) and you are uncertain which parts are relevant, tell the user what you have found and ask for guidance on where to focus before continuing.
 - For appropriately scoped projects, ask questions one at a time to refine the idea
 - Prefer multiple choice questions when possible, but open-ended is fine too
 - Only one question per message - if a topic needs more exploration, break it into multiple questions
