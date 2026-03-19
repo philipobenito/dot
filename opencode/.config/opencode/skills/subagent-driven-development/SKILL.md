@@ -1,36 +1,96 @@
 ---
 name: subagent-driven-development
-description: Use when executing implementation plans with independent tasks in the current session
+description: Use when implementing an approved design or plan by decomposing it into tasks and executing each with a fresh subagent plus two-stage review
 ---
 
 # Subagent-Driven Development
 
-Execute the plan by dispatching a fresh subagent per task, with a two-stage review after each: spec compliance review first, then code quality review.
+Decompose a design into implementable tasks, then execute each by dispatching a fresh subagent per task with a two-stage review after each: spec compliance review first, then code quality review.
 
 **Why subagents:** You delegate tasks to specialised agents with an isolated context. By precisely crafting their instructions and context, you ensure they stay focused and succeed at their task. They should never inherit your session's context or history — you construct exactly what they need. This also preserves your own context for coordination work.
 
-**Core principle:** Fresh subagent per task plus two-stage review (spec then quality) = high quality, fast iteration
+**Core principle:** Design in, decompose into tasks, fresh subagent per task, two-stage review = high quality, fast iteration
+
+## Subagent Type Selection
+
+Before dispatching any subagent, check the available subagent types and select the most specific one that fits the task. Generic agents produce generic work. Specialised agents understand the domain, follow its conventions, and catch domain-specific issues that a general-purpose agent misses.
+
+**The selection process for every dispatch:**
+
+1. Look at the task: what language, framework, or domain does it involve?
+2. Check the available subagent types for a match (e.g. `typescript-pro` for TypeScript, `react-specialist` for React components, `python-pro` for Python, `code-reviewer` for reviews)
+3. If a specialised type matches, use it via the `subagent_type` parameter
+4. Fall back to `general-purpose` only when no specialised type fits
+
+This applies to implementers, spec reviewers, and code quality reviewers alike. A TypeScript task should be implemented by a TypeScript specialist, and reviewed by a code reviewer specialist, not by three general-purpose agents.
+
+**During task decomposition**, annotate each task with the recommended subagent type. This avoids re-evaluating the selection at dispatch time and makes the choice explicit and reviewable.
 
 ## When to Use
 
 ```dot
 digraph when_to_use {
-    "Have implementation plan?" [shape=diamond];
+    "Have approved design or plan?" [shape=diamond];
     "Tasks mostly independent?" [shape=diamond];
     "subagent-driven-development" [shape=box];
     "Brainstorm first" [shape=box];
 
-    "Have implementation plan?" -> "Tasks mostly independent?" [label="yes"];
-    "Have implementation plan?" -> "Brainstorm first" [label="no"];
+    "Have approved design or plan?" -> "Tasks mostly independent?" [label="yes"];
+    "Have approved design or plan?" -> "Brainstorm first" [label="no"];
     "Tasks mostly independent?" -> "subagent-driven-development" [label="yes"];
     "Tasks mostly independent?" -> "Brainstorm first" [label="no - tightly coupled"];
 }
 ```
 
 **Key advantages:**
+- Handles both task decomposition and execution in one flow
 - Fresh subagent per task (no context pollution)
 - Two-stage review after each task: spec compliance first, then code quality
 - Faster iteration (no human-in-loop between tasks)
+
+## Task Decomposition
+
+Before dispatching subagents, decompose the design into implementable tasks. The design from brainstorming (or an existing plan file) is the input.
+
+### File Structure
+
+Map out which files will be created or modified and what each one is responsible for. This locks in the decomposition decisions before any code is written.
+
+- Each file should have one clear responsibility with a well-defined interface
+- Prefer smaller, focused files over large ones that do too much
+- In existing codebases, follow established patterns
+- Files that change together should live together
+
+### Task Granularity
+
+Each task should be a self-contained unit of work that produces working, testable code:
+
+- Touches a focused set of files (ideally 1-3)
+- Has clear acceptance criteria derivable from the design
+- Can be verified independently
+- Results in a commit
+
+Within each task, steps should follow TDD: write the failing test, run it, implement the minimal code, run tests, commit. This level of detail is communicated to the implementer subagent, not tracked by the controller.
+
+### Task Ordering
+
+Order tasks to respect dependencies:
+
+1. Foundation/infrastructure first
+2. Core features next
+3. Integration after dependencies
+4. Polish/cleanup last
+
+### Output
+
+The decomposition produces a TodoWrite with all tasks. Each task entry includes:
+
+- Task name and description
+- Recommended subagent type (e.g. `typescript-pro`, `python-pro`, `react-specialist`)
+- Files to create or modify (exact paths)
+- Acceptance criteria
+- Dependencies on other tasks
+- Scene-setting context (where this fits in the overall design)
 
 ## The Process
 
@@ -40,6 +100,7 @@ digraph process {
 
     subgraph cluster_per_task {
         label="Per Task";
+        "Select specialised subagent type\n(from task annotation)" [shape=box, style=bold];
         "Dispatch implementer subagent (./implementer-prompt.md)" [shape=box];
         "Implementer subagent asks questions?" [shape=diamond];
         "Answer questions, provide context" [shape=box];
@@ -53,11 +114,12 @@ digraph process {
         "Mark task complete in TodoWrite" [shape=box];
     }
 
-    "Read plan, extract all tasks with full text, note context, create TodoWrite" [shape=box];
+    "Decompose design into tasks, map files, select subagent types, create TodoWrite" [shape=box];
     "More tasks remain?" [shape=diamond];
     "Dispatch final code reviewer subagent for entire implementation" [shape=box];
 
-    "Read plan, extract all tasks with full text, note context, create TodoWrite" -> "Dispatch implementer subagent (./implementer-prompt.md)";
+    "Decompose design into tasks, map files, select subagent types, create TodoWrite" -> "Select specialised subagent type\n(from task annotation)";
+    "Select specialised subagent type\n(from task annotation)" -> "Dispatch implementer subagent (./implementer-prompt.md)";
     "Dispatch implementer subagent (./implementer-prompt.md)" -> "Implementer subagent asks questions?";
     "Implementer subagent asks questions?" -> "Answer questions, provide context" [label="yes"];
     "Answer questions, provide context" -> "Dispatch implementer subagent (./implementer-prompt.md)";
@@ -72,7 +134,7 @@ digraph process {
     "Implementer subagent fixes quality issues" -> "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" [label="re-review"];
     "Code quality reviewer subagent approves?" -> "Mark task complete in TodoWrite" [label="yes"];
     "Mark task complete in TodoWrite" -> "More tasks remain?";
-    "More tasks remain?" -> "Dispatch implementer subagent (./implementer-prompt.md)" [label="yes"];
+    "More tasks remain?" -> "Select specialised subagent type\n(from task annotation)" [label="yes"];
     "More tasks remain?" -> "Dispatch final code reviewer subagent for entire implementation" [label="no"];
 }
 ```
@@ -119,15 +181,13 @@ Implementer subagents report one of four statuses. Handle each appropriately:
 ## Example Workflow
 
 ```
-You: I'm using Subagent-Driven Development to execute this plan.
+You: I'm using Subagent-Driven Development to implement this design.
 
-[Read plan file once: /tmp/plans/feature-plan.md]
-[Extract all 5 tasks with full text and context]
+[Decompose design into tasks: map file structure, define 5 tasks with acceptance criteria]
 [Create TodoWrite with all tasks]
 
 Task 1: Hook installation script
 
-[Get Task 1 text and context (already extracted)]
 [Dispatch implementation subagent with full task text + context]
 
 Implementer: "Before I begin - should the hook be installed at user or system level?"
@@ -151,7 +211,6 @@ Code reviewer: Strengths: Good test coverage, clean. Issues: None. Approved.
 
 Task 2: Recovery modes
 
-[Get Task 2 text and context (already extracted)]
 [Dispatch implementation subagent with full task text + context]
 
 Implementer: [No questions, proceeds]
@@ -200,14 +259,10 @@ Done!
 - Parallel-safe (subagents don't interfere)
 - Subagent can ask questions (before AND during work)
 
-**vs. Executing Plans:**
-- Same session (no handoff)
-- Continuous progress (no waiting)
-- Review checkpoints automatically
-
 **Efficiency gains:**
 - No file reading overhead (controller provides full text)
 - Controller curates exactly what context is needed
+- Design-to-execution in one flow (no intermediate handoff)
 - Subagent gets complete information upfront
 - Questions surfaced before work begins (not after)
 
@@ -230,7 +285,7 @@ Done!
 - Skip reviews (spec compliance OR code quality)
 - Proceed with unfixed issues
 - Dispatch multiple implementation subagents in parallel (conflicts)
-- Make subagent read plan file (provide full text instead)
+- Make subagent discover context on its own (provide full text instead)
 - Skip scene-setting context (subagent needs to understand where a task fits)
 - Ignore subagent questions (answer before letting them proceed)
 - Accept "close enough" on spec compliance (spec reviewer found issues = not done)
@@ -257,7 +312,7 @@ Done!
 ## Integration
 
 **Required workflow skills:**
-- **writing-plans** - Creates the plan this skill executes
+- **brainstorming** or **guided-brainstorming** - Creates the design this skill implements
 - **requesting-code-review** - Code review template for reviewer subagents
 
 **Subagents should use:**

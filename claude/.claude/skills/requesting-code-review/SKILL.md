@@ -77,13 +77,9 @@ You: [Fix progress indicators]
 ## Integration with Workflows
 
 **Subagent-Driven Development:**
-- Review after EACH task
+- Review after EACH task (built into the two-stage review flow)
 - Catch issues before they compound
 - Fix before moving to the next task
-
-**Executing Plans:**
-- Review after each batch (3 tasks)
-- Get feedback, apply, continue
 
 **Ad-Hoc Development:**
 - Review before merge

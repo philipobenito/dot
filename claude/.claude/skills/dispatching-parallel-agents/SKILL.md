@@ -172,11 +172,15 @@ After agents return:
 3. **Run full suite** - Verify all fixes work together
 4. **Spot check** - Agents can make systematic errors
 
-## Real-World Impact
+## Subagent Type Selection
 
-From debugging session (2025-10-03):
-- 6 failures across 3 files
-- 3 agents dispatched in parallel
-- All investigations are completed concurrently
-- All fixes integrated successfully
-- Zero conflicts between agent changes
+When dispatching parallel agents, select specialised subagent types where possible. The same principle from subagent-driven-development applies here: generic agents produce generic work.
+
+For each agent being dispatched:
+
+1. What language, framework, or domain does the problem involve?
+2. Is there a specialised subagent type that fits? (e.g. `typescript-pro` for TypeScript test failures, `python-pro` for Python issues, `debugger` for diagnostic work)
+3. Use it via the `subagent_type` parameter
+4. Fall back to `general-purpose` only when no specialised type fits
+
+When dispatching multiple agents in parallel, each can use a different specialised type based on its specific problem domain.

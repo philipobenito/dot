@@ -39,7 +39,7 @@ You MUST create a task for each of these items and complete them in order:
 6. **Confirm final design** - summarise the agreed design in a structured message
 7. **Design review loop** - dispatch design-reviewer subagent against the summary; fix issues and re-dispatch until approved (max three iterations, then surface to human)
 8. **User approves final design** - present the reviewed design summary, get explicit user approval
-9. **Transition to implementation** - invoke writing-plans skill to create implementation plan
+9. **Decide next step** - ask: "Would you like to create tickets for this work, or start implementation now?"
 
 ## Process Flow
 
@@ -59,7 +59,7 @@ digraph brainstorming {
     "Design review loop" [shape=box];
     "Review passed?" [shape=diamond];
     "User approves?" [shape=diamond];
-    "Invoke writing-plans skill" [shape=doublecircle];
+    "What next?" [shape=diamond];
 
     "Enter plan mode" -> "Wants guided mode?";
     "Wants guided mode?" -> "Invoke guided-brainstorming" [label="yes"];
@@ -77,11 +77,15 @@ digraph brainstorming {
     "Review passed?" -> "Design review loop" [label="issues found,\nfix and re-dispatch"];
     "Review passed?" -> "User approves?" [label="approved"];
     "User approves?" -> "Ask clarifying questions" [label="rethink needed"];
-    "User approves?" -> "Invoke writing-plans skill" [label="approved"];
+    "User approves?" -> "What next?" [label="approved"];
+    "Invoke create-tickets skill" [shape=doublecircle];
+    "Invoke subagent-driven-development skill" [shape=doublecircle];
+    "What next?" -> "Invoke create-tickets skill" [label="create tickets"];
+    "What next?" -> "Invoke subagent-driven-development skill" [label="start work"];
 }
 ```
 
-**The terminal state is invoking writing-plans.** Do NOT invoke any implementation skill. The ONLY skill you invoke after brainstorming is writing-plans.
+**The terminal states are create-tickets or subagent-driven-development.** After brainstorming, the only skills you invoke are create-tickets (to track work as tickets) or subagent-driven-development (to start building).
 
 ## The Process
 
@@ -129,7 +133,7 @@ Once all design sections have been presented and approved individually:
 - Summarise the complete agreed design in a single, structured message
 - Include: goal, architecture, key components, interfaces, data flow, and anything else that emerged from the conversation
 
-This summary becomes the input for both the design review loop and the writing-plans skill. It does not need to be written to a file because the conversation context carries it forward.
+This summary becomes the input for both the design review loop and the next step (create-tickets or subagent-driven-development). It does not need to be written to a file because the conversation context carries it forward.
 
 ## Design Review Loop
 
@@ -155,13 +159,15 @@ The reviewer checks for:
 
 After the review loop passes, present the final design summary to the user and get explicit approval before proceeding. If the user requests changes, make them and re-run the review loop.
 
-## Transitioning to Implementation
+## Next Steps
 
-Once the user approves the reviewed design:
+Once the user approves the reviewed design, ask what they'd like to do:
 
-- Invoke the writing-plans skill to create a detailed implementation plan
-- Do NOT invoke any other skill. writing-plans is the next step.
-- The writing-plans skill will use the design from the conversation to produce the plan
+**Create tickets:** Invoke the create-tickets skill to break the design into tickets in the project's ticketing system. Use this when the work isn't happening right now, needs tracking, or involves multiple people.
+
+**Start implementation:** Invoke the subagent-driven-development skill to begin building. This decomposes the design into tasks and executes them with subagents. Use this when the user wants to start building immediately.
+
+Do NOT invoke any other skill. The only skills you invoke after brainstorming are create-tickets or subagent-driven-development.
 
 ## Key Principles
 
