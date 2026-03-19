@@ -50,8 +50,8 @@ if command -v lazydocker &> /dev/null; then
     alias ld='lazydocker'
 fi
 
-alias stow="stow -t ~ -v "
-alias unstow="stow -D -t ~"
+alias stow="stow -t $HOME -v"
+alias unstow="stow -D -t $HOME"
 
 alias vim="nvim"
 alias vi="nvim"

@@ -2,7 +2,7 @@
 
 ## Abstract
 
-This document establishes general coding principles and practices for LLM agents. These guidelines apply universally across all programming languages and project types unless superseded by language-specific or project-specific requirements in CLAUDE.md or project level AGENTS.md.
+This document establishes general coding principles and practices for LLM agents. These guidelines apply universally across all programming languages and project types unless superseded by language-specific or project-specific requirements in {{INSTRUCTIONS_FILE}}.
 
 ---
 
@@ -11,6 +11,7 @@ This document establishes general coding principles and practices for LLM agents
 ### 1.1 British English
 
 You **MUST** use British English spelling and grammar in all:
+
 - Code comments (when necessary)
 - Documentation
 - Commit messages
@@ -18,19 +19,25 @@ You **MUST** use British English spelling and grammar in all:
 - User-facing strings
 
 Examples:
+
 - `colour` not `color`
 - `initialise` not `initialize`
 - `behaviour` not `behavior`
 - `organise` not `organize`
 
-### 1.2 Emoji, Em dash, and En dash Usage
+### 1.2 Emoji Usage
 
-You MUST NOT use emojis, em dash (—), en dash (–), double hyphen (--), unicode symbols, or special characters in:
+You MUST NOT use emojis, Unicode symbols, or special characters in:
+
 - Code or comments
 - Commit messages
 - Documentation
 - Communication with users
 - Status indicators or checkmarks (use [PASS]/[FAIL]/[OK] instead)
+
+### 1.3 Em-dashes etc
+
+- You MUST not use any version of an en-dash or em-dash, including a double hyphen (--), a hyphen, or comma will usually be enough
 
 ---
 
@@ -41,6 +48,7 @@ You MUST NOT use emojis, em dash (—), en dash (–), double hyphen (--), unico
 You **MUST** prioritise writing descriptive, self-explanatory code over adding comments or docblocks.
 
 **Good practices:**
+
 - Use meaningful, descriptive variable and function names
 - Keep functions small and focused on a single responsibility
 - Structure code to reveal intent through organisation and naming
@@ -69,12 +77,14 @@ function calculateOrderTotalIncludingVAT(
 ### 2.2 Default rule: Write code without comments
 
 You **MUST NOT** add comments unless ALL of these conditions are met:
-1. The code implements a workaround for an external bug/limitation (e.g., browser quirk, library bug)
+
+1. The code implements a workaround for an external bug/limitation (e.g. browser quirk, library bug)
 2. You have a specific ticket/issue reference to cite
 3. The workaround logic cannot be extracted to a well-named function
 4. The user has not explicitly forbidden comments for this file type
 
 **Specifically FORBIDDEN:**
+
 - Comments explaining what code does (code should be self-documenting)
 - Comments before function calls (`// Publish the article` before `publishArticle()`)
 - Comments before variable assignments (`// Store the result` before `$result = ...`)
@@ -86,6 +96,7 @@ You **MUST NOT** add comments unless ALL of these conditions are met:
 Tests are documentation. Test names and assertions must be self-explanatory. Zero comments except ticket references for regression tests.
 
 **When you think a comment is needed:**
+
 1. FIRST: Can I rename variables/functions to make this clearer? (Do this)
 2. SECOND: Can I extract to a well-named method? (Do this)
 3. THIRD: Can I simplify the logic? (Do this)
@@ -112,6 +123,7 @@ $this->articlesLibrary->publishArticle($article->ID, now());
 Your default behaviour: Write code. Ship code. No comments. If you catch yourself about to write a comment, stop and refactor instead.
 
 This makes the hierarchy crystal clear:
+
 1. Default = no comments
 2. Refactor first (always)
 3. Only comment for documented workarounds with ticket references
@@ -122,6 +134,7 @@ This makes the hierarchy crystal clear:
 You **MUST** avoid docblocks where type systems and function signatures provide sufficient information.
 
 You **MAY ONLY** use docblocks when:
+
 - Required for API documentation generation
 - Providing usage examples for complex public APIs
 - Documenting framework-specific annotations or decorators
@@ -134,6 +147,7 @@ You **MAY ONLY** use docblocks when:
 ### 3.1 Function and Method Length
 
 You **SHOULD** keep functions concise and focused:
+
 - Aim for functions under 20 lines where practical
 - Extract complex logic into well-named helper functions
 - If a function requires extensive commenting, consider decomposition
@@ -141,6 +155,7 @@ You **SHOULD** keep functions concise and focused:
 ### 3.2 File Structure
 
 You **SHOULD** organise files to reflect domain concepts:
+
 - One primary class or module per file (language-dependent)
 - Group related functionality together
 - Use directory structure to represent architectural boundaries
@@ -148,6 +163,7 @@ You **SHOULD** organise files to reflect domain concepts:
 ### 3.3 Naming Conventions
 
 You **MUST** follow language-specific conventions while prioritising clarity:
+
 - Use full words over abbreviations unless the abbreviation is ubiquitous (e.g., `HTTP`, `URL`, `ID`)
 - Avoid single-letter variables except in narrow scopes (loop counters, mathematical formulae)
 - Boolean variables should read as predicates: `isActive`, `hasPermission`, `canExecute`
@@ -159,6 +175,7 @@ You **MUST** follow language-specific conventions while prioritising clarity:
 ### 4.1 Explicit Error States
 
 You **SHOULD** make error conditions explicit and handled:
+
 - Avoid silent failures
 - Use exceptions for exceptional circumstances, not control flow
 - Validate input at system boundaries
@@ -167,6 +184,7 @@ You **SHOULD** make error conditions explicit and handled:
 ### 4.2 Error Messages
 
 You **MUST** provide actionable error messages:
+
 - Describe what went wrong
 - Include relevant context (what operation was attempted)
 - Suggest remediation where applicable
@@ -179,13 +197,15 @@ You **MUST** provide actionable error messages:
 ### 5.1 Dependency Management
 
 You **SHOULD** minimise external dependencies:
+
 - Evaluate whether a dependency is truly necessary
 - Prefer standard library solutions where adequate
-- Consider maintenance burden and security implications
+- Consider the maintenance burden and security implications
 
 ### 5.2 Import Organisation
 
 You **SHOULD** organise imports logically:
+
 - Group by type (standard library, third-party, local)
 - Sort alphabetically within groups (allow formatting tools to handle this if defined in project instructions)
 - Remove unused imports
@@ -197,11 +217,13 @@ You **SHOULD** organise imports logically:
 ### 6.1 Test Naming
 
 You **MUST** write descriptive test names that explain the scenario:
+
 - Use complete sentences or clear phrases
 - Describe the expected behaviour, not implementation
 - Make failures self-explanatory
 
 Example:
+
 ```typescript
 // Good
 test('calculateOrderTotalIncludingVAT adds 20% VAT to subtotal')
@@ -214,7 +236,8 @@ test('calcTotal')
 
 ### 6.2 Test Structure
 
-You **SHOULD** follow Arrange-Act-Assert pattern:
+You **SHOULD** follow an Arrange-Act-Assert pattern:
+
 - Setup test data (Arrange)
 - Execute the code under test (Act)
 - Verify outcomes (Assert)
@@ -234,6 +257,7 @@ You **MUST** never commit, push, or perform destructive version control commands
 ### 8.1 Premature Optimisation
 
 You **SHOULD** prioritise correctness and clarity over premature optimisation:
+
 - Write clear code first
 - Measure performance before optimising
 - Document performance-critical sections when optimisation affects readability
@@ -241,6 +265,7 @@ You **SHOULD** prioritise correctness and clarity over premature optimisation:
 ### 8.2 Resource Management
 
 You **MUST** handle resources properly:
+
 - Close file handles, database connections, network sockets
 - Use language-appropriate patterns (RAII, defer, using statements, context managers)
 - Avoid resource leaks
@@ -252,6 +277,7 @@ You **MUST** handle resources properly:
 ### 9.1 Input Validation
 
 You **MUST** validate and sanitise external input:
+
 - Never trust user input
 - Validate at system boundaries
 - Use parameterised queries for database access
@@ -261,6 +287,7 @@ You **MUST** validate and sanitise external input:
 
 You **MUST NOT** commit sensitive data:
 You **MUST** point out to the user if there is potential to commit sensitive data:
+
 - Credentials, API keys, tokens
 - Personal or confidential information
 - Use environment variables or secure secret management
@@ -272,6 +299,7 @@ You **MUST** point out to the user if there is potential to commit sensitive dat
 ### 10.1 Inclusive Language
 
 You **SHOULD** use inclusive, professional terminology:
+
 - Avoid unnecessarily gendered language
 - Use industry-standard terms that are clear and respectful
 - Prefer `allowlist/denylist` over `whitelist/blacklist`
@@ -284,6 +312,7 @@ You **SHOULD** use inclusive, professional terminology:
 ### 11.1 Follow Existing Patterns
 
 You **MUST** maintain consistency with existing codebase:
+
 - Match established patterns and conventions
 - If improving patterns, refactor consistently
 - Don't mix styles within a file or module
@@ -291,8 +320,9 @@ You **MUST** maintain consistency with existing codebase:
 ### 11.2 Formatters and Linters
 
 You **SHOULD** use automated tooling where available:
-- Code formatters (Prettier, Black, gofmt, rustfmt)
-- Linters (ESLint, Pylint, RuboCop, Clippy)
+
+- Code formatters
+- Linters
 - Static analysis tools
 - Respect existing tool configurations
 
@@ -303,6 +333,7 @@ You **SHOULD** use automated tooling where available:
 ### 12.1 README Files
 
 You **SHOULD** maintain clear README documentation:
+
 - Installation instructions
 - Usage examples
 - Architecture overview (for complex projects)
@@ -311,6 +342,7 @@ You **SHOULD** maintain clear README documentation:
 ### 12.2 Architectural Documentation
 
 You **MAY** provide architectural documentation for complex systems:
+
 - System diagrams
 - Decision records (ADRs)
 - API specifications
@@ -318,12 +350,42 @@ You **MAY** provide architectural documentation for complex systems:
 
 ---
 
+## 13. Skills
+
+### 13.1 Mandatory Skill Usage
+
+You **MUST** use skills when they are available and relevant to the task at hand. Skills are not optional suggestions, they are required workflow steps. If a skill exists that matches your current task, you **MUST** invoke it via the Skill tool before proceeding with any other response, including clarifying questions.
+
+### 13.2 The `using-skills` Skill
+
+At the start of every conversation, you **MUST** invoke the `using-skills` skill. This skill establishes how to discover and use all other available skills. It is the entry point for skill-driven workflows, and skipping it is not acceptable.
+
+### 13.3 Skill Discovery
+
+You **MUST** check available skills before beginning any task. If you are unsure whether a relevant skill exists, check the skill list. You **MUST NOT** proceed with manual approaches when a skill covers the same workflow.
+
+### 13.4 Skill Priority
+
+Skills take precedence over ad-hoc approaches:
+
+- If a skill exists for brainstorming, you **MUST** use it before creative or design work
+- If a skill exists for planning, you **MUST** use it before multistep implementation
+- If a skill exists for testing, you **MUST** use it before writing implementation code
+- If a skill exists for code review, you **MUST** use it before claiming work is complete
+- If a skill exists for verification, you **MUST** use it before asserting that something passes or works
+
+### 13.5 No Exceptions
+
+There is no circumstance where ignoring an available, relevant skill is acceptable. "I forgot" or "it seemed simpler without" are not valid reasons. Skills encode proven workflows and quality gates. Bypassing them undermines the consistency and quality these guidelines exist to protect.
+
+---
+
 ## Compliance
 
 These guidelines **MUST** be followed unless:
+
 1. Language-specific conventions dictate otherwise
-2. Project-specific requirements in CLAUDE.md or AGENTS.md override them
+2. Project-specific requirements in {{INSTRUCTIONS_FILE}} override them
 3. The user explicitly requests a different approach
 
 When in doubt, prioritise clarity, maintainability, and consistency with the existing codebase.
-

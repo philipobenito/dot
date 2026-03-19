@@ -15,4 +15,13 @@
 # Commercial fonts (purchase from typography.com)
 fonts/
 
-CLAUDE.md
+# Project-level AI instructions (local to this repo, not committed)
+/CLAUDE.md
+
+# Generated AI config (output of ai/generate.sh)
+claude/.claude/CLAUDE.md
+claude/.claude/agents/
+claude/.claude/skills/
+opencode/.config/opencode/AGENTS.md
+opencode/.config/opencode/agents/
+opencode/.config/opencode/skills/

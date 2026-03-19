@@ -17,12 +17,15 @@ ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 # Source directories
 AGENTS_DIR="$SCRIPT_DIR/agents"
 SKILLS_DIR="$SCRIPT_DIR/skills"
+INSTRUCTIONS_SOURCE="$SCRIPT_DIR/instructions.md"
 
 # Output directories
 CLAUDE_DIR="$ROOT_DIR/claude/.claude/agents"
 CLAUDE_SKILLS_DIR="$ROOT_DIR/claude/.claude/skills"
+CLAUDE_INSTRUCTIONS="$ROOT_DIR/claude/.claude/CLAUDE.md"
 OPENCODE_DIR="$ROOT_DIR/opencode/.config/opencode/agents"
 OPENCODE_SKILLS_DIR="$ROOT_DIR/opencode/.config/opencode/skills"
+OPENCODE_INSTRUCTIONS="$ROOT_DIR/opencode/.config/opencode/AGENTS.md"
 
 # Colors
 RED='\033[0;31m'
@@ -352,23 +355,45 @@ copy_skill() {
     log_info "$label skill: $skill_name"
 }
 
+generate_instructions() {
+    local output="$1"
+    local label="$2"
+    local tool_name="$3"
+    local instructions_file="$4"
+
+    sed -e "s/{{TOOL_NAME}}/$tool_name/g" \
+        -e "s/{{INSTRUCTIONS_FILE}}/$instructions_file/g" \
+        "$INSTRUCTIONS_SOURCE" > "$output"
+
+    log_info "$label: $(basename "$output")"
+}
+
 # Clean generated files
 clean() {
     log_info "Cleaning generated files..."
     rm -f "$CLAUDE_DIR"/*.md 2>/dev/null || true
     rm -rf "$CLAUDE_SKILLS_DIR" 2>/dev/null || true
+    rm -f "$CLAUDE_INSTRUCTIONS" 2>/dev/null || true
     rm -f "$OPENCODE_DIR"/*.md 2>/dev/null || true
     rm -rf "$OPENCODE_SKILLS_DIR" 2>/dev/null || true
+    rm -f "$OPENCODE_INSTRUCTIONS" 2>/dev/null || true
     log_info "Clean complete"
 }
 
 # Generate all agents and skills
 generate_all() {
-    log_info "Generating agents and skills from source..."
+    log_info "Generating from source..."
     echo ""
 
     mkdir -p "$CLAUDE_DIR" "$OPENCODE_DIR"
     mkdir -p "$CLAUDE_SKILLS_DIR" "$OPENCODE_SKILLS_DIR"
+
+    if [[ -f "$INSTRUCTIONS_SOURCE" ]]; then
+        generate_instructions "$CLAUDE_INSTRUCTIONS" "Claude Code" "Claude Code" "CLAUDE.md"
+        generate_instructions "$OPENCODE_INSTRUCTIONS" "OpenCode" "OpenCode" "AGENTS.md"
+    else
+        log_warn "No instructions source found at $INSTRUCTIONS_SOURCE"
+    fi
 
     local agent_count=0
     for source_file in "$AGENTS_DIR"/*.md; do
@@ -394,10 +419,12 @@ generate_all() {
     log_info "Generated $agent_count agents and $skill_count skills for each tool"
     echo ""
     log_info "Output locations:"
-    echo "  Claude Code agents:   $CLAUDE_DIR"
-    echo "  Claude Code skills:  $CLAUDE_SKILLS_DIR"
-    echo "  OpenCode agents:      $OPENCODE_DIR"
-    echo "  OpenCode skills:      $OPENCODE_SKILLS_DIR"
+    echo "  Claude Code instructions: $CLAUDE_INSTRUCTIONS"
+    echo "  Claude Code agents:       $CLAUDE_DIR"
+    echo "  Claude Code skills:       $CLAUDE_SKILLS_DIR"
+    echo "  OpenCode instructions:    $OPENCODE_INSTRUCTIONS"
+    echo "  OpenCode agents:          $OPENCODE_DIR"
+    echo "  OpenCode skills:          $OPENCODE_SKILLS_DIR"
     echo ""
     log_info "Run 'stow claude opencode' to deploy"
 }
