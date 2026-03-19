@@ -31,7 +31,7 @@ You MUST enter plan mode (use `{{ENTER_PLAN_TOOL}}`) before brainstorming.
 
 You MUST create a task (using `{{TASK_TRACKER_TOOL}}`) for each of these items and complete them in order:
 
-1. **Offer guided mode** - use `{{ASK_USER_TOOL}}` to ask whether the user wants guided or standard brainstorming (see Offering Guided Mode below). If the user wants the guided version, invoke the guided-brainstorming skill using `{{INVOKE_SKILL_TOOL}}` and stop. Otherwise, continue.
+1. **Offer mode selection** - use `{{ASK_USER_TOOL}}` to ask which brainstorming mode the user wants (see Offering Mode Selection below). If the user selects guided or agent committee, invoke the corresponding skill using `{{INVOKE_SKILL_TOOL}}` and stop. Otherwise, continue.
 2. **Explore project context** - check files, docs, recent commits
 3. **Ask clarifying questions** - one at a time, understand purpose/constraints/success criteria
 4. **Propose 2-3 approaches** - with trade-offs and your recommendation
@@ -47,8 +47,9 @@ You MUST create a task (using `{{TASK_TRACKER_TOOL}}`) for each of these items a
 digraph brainstorming {
     rankdir=TB;
     "Enter plan mode" [shape=box];
-    "Wants guided mode?" [shape=diamond];
+    "Which mode?" [shape=diamond];
     "Invoke guided-brainstorming" [shape=doublecircle];
+    "Invoke agent-committee-brainstorming" [shape=doublecircle];
     "Explore project context" [shape=box];
     "Ask clarifying questions" [shape=box];
     "Propose 2-3 approaches" [shape=box];
@@ -61,9 +62,10 @@ digraph brainstorming {
     "User approves?" [shape=diamond];
     "What next?" [shape=diamond];
 
-    "Enter plan mode" -> "Wants guided mode?";
-    "Wants guided mode?" -> "Invoke guided-brainstorming" [label="yes"];
-    "Wants guided mode?" -> "Explore project context" [label="no"];
+    "Enter plan mode" -> "Which mode?";
+    "Which mode?" -> "Invoke guided-brainstorming" [label="guided"];
+    "Which mode?" -> "Invoke agent-committee-brainstorming" [label="committee"];
+    "Which mode?" -> "Explore project context" [label="standard"];
     "Explore project context" -> "Ask clarifying questions";
     "Ask clarifying questions" -> "Propose 2-3 approaches";
     "Propose 2-3 approaches" -> "Present design sections";
@@ -163,23 +165,27 @@ The reviewer checks for:
 
 After the review loop passes, present the final design summary to the user and get explicit approval before proceeding. If the user requests changes, make them and re-run the review loop.
 
-## Offering Guided Mode
+## Offering Mode Selection
 
-At the start of brainstorming, use `{{ASK_USER_TOOL}}` to determine whether the user wants guided or standard mode. Do NOT ask as plain text.
+At the start of brainstorming, use `{{ASK_USER_TOOL}}` to determine which mode the user wants. Do NOT ask as plain text.
 
 ```
 {{ASK_USER_TOOL}}:
-  question: "Are you familiar with this codebase, or would you like me to walk you through the relevant parts as we design?"
+  question: "How would you like to approach this brainstorming session?"
   header: "Mode"
   options:
     - label: "Standard brainstorming"
       description: "I know the codebase. Let's focus on reaching a design efficiently."
     - label: "Guided brainstorming"
       description: "Walk me through the architecture, patterns, and conventions as we go."
+    - label: "Agent committee brainstorming"
+      description: "Hands-off: 3 AI agents deliberate and reach consensus. I'll review the final design."
   multiSelect: false
 ```
 
 If the user selects "Guided brainstorming", invoke the guided-brainstorming skill using `{{INVOKE_SKILL_TOOL}}` and stop.
+
+If the user selects "Agent committee brainstorming", invoke the agent-committee-brainstorming skill using `{{INVOKE_SKILL_TOOL}}` and stop.
 
 ## Next Steps
 
