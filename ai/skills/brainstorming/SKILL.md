@@ -29,17 +29,24 @@ Plan mode is the native environment for brainstorming. It provides:
 
 You MUST enter plan mode (use `{{ENTER_PLAN_TOOL}}`) before brainstorming.
 
-You MUST create a task (using `{{TASK_TRACKER_TOOL}}`) for each of these items and complete them in order:
+### Stage 1: Mode Selection
 
-1. **Offer mode selection** - use `{{ASK_USER_TOOL}}` to ask which brainstorming mode the user wants (see Offering Mode Selection below). If the user selects guided or agent committee, invoke the corresponding skill using `{{INVOKE_SKILL_TOOL}}` and stop. Otherwise, continue.
-2. **Explore project context** - check files, docs, recent commits
-3. **Ask clarifying questions** - one at a time, understand purpose/constraints/success criteria
-4. **Propose 2-3 approaches** - with trade-offs and your recommendation
-5. **Present design** - in sections scaled to their complexity, get user approval after each section
-6. **Confirm final design** - summarise the agreed design in a structured message
-7. **Design review loop** - dispatch design-reviewer subagent against the summary; fix issues and re-dispatch until approved (max three iterations, then surface to human)
-8. **User approves final design** - present the reviewed design summary, get explicit user approval
-9. **Decide next step** - use `{{ASK_USER_TOOL}}` to ask what to do next (see Next Steps below)
+Create a single task using `{{TASK_TRACKER_TOOL}}`:
+
+1. **Offer mode selection** - use `{{ASK_USER_TOOL}}` to ask which brainstorming mode the user wants (see Offering Mode Selection below). If the user selects guided or agent committee, invoke the corresponding skill using `{{INVOKE_SKILL_TOOL}}` and stop. The invoked skill manages its own task list. Only continue to Stage 2 if the user selects standard brainstorming.
+
+### Stage 2: Standard Brainstorming
+
+Only after the user selects standard brainstorming, create tasks (using `{{TASK_TRACKER_TOOL}}`) for each of these items and complete them in order:
+
+1. **Explore project context** - check files, docs, recent commits
+2. **Ask clarifying questions** - one at a time, understand purpose/constraints/success criteria
+3. **Propose 2-3 approaches** - with trade-offs and your recommendation
+4. **Present design** - in sections scaled to their complexity, get user approval after each section
+5. **Confirm final design** - summarise the agreed design in a structured message
+6. **Design review loop** - dispatch design-reviewer subagent against the summary; fix issues and re-dispatch until approved (max three iterations, then surface to human)
+7. **User approves final design** - present the reviewed design summary, get explicit user approval
+8. **Decide next step** - use `{{ASK_USER_TOOL}}` to ask what to do next (see Next Steps below)
 
 ## Process Flow
 
