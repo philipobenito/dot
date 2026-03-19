@@ -42,8 +42,7 @@
     "voltagent-biz@voltagent-subagents": true,
     "voltagent-data-ai@voltagent-subagents": true,
     "voltagent-research@voltagent-subagents": true,
-    "skill-creator@claude-plugins-official": true,
-    "greptile@claude-plugins-official": true
+    "skill-creator@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
     "voltagent-subagents": {

@@ -442,7 +442,7 @@ generate_all() {
 
         generate_claude "$source_file"
         generate_opencode "$source_file"
-        ((agent_count++))
+        ((++agent_count))
     done
 
     local skill_count=0
@@ -452,7 +452,7 @@ generate_all() {
 
         copy_skill "$skill_dir" "$CLAUDE_SKILLS_DIR" "Claude" "CLAUDE"
         copy_skill "$skill_dir" "$OPENCODE_SKILLS_DIR" "OpenCode" "OPENCODE"
-        ((skill_count++))
+        ((++skill_count))
     done
 
     echo ""
