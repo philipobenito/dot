@@ -39,6 +39,20 @@ log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 log_debug() { [[ "${DEBUG:-}" == "1" ]] && echo -e "${BLUE}[DEBUG]${NC} $1" || true; }
 
+# Skill template variables per tool
+# These map {{VAR}} placeholders in skill source files to tool-specific values
+CLAUDE_ASK_USER_TOOL="AskUserQuestion"
+CLAUDE_INVOKE_SKILL_TOOL="Skill"
+CLAUDE_TASK_TRACKER_TOOL="TodoWrite"
+CLAUDE_DISPATCH_AGENT_TOOL="Agent"
+CLAUDE_ENTER_PLAN_TOOL="EnterPlanMode"
+
+OPENCODE_ASK_USER_TOOL="AskUserQuestion"
+OPENCODE_INVOKE_SKILL_TOOL="Skill"
+OPENCODE_TASK_TRACKER_TOOL="TodoWrite"
+OPENCODE_DISPATCH_AGENT_TOOL="Agent"
+OPENCODE_ENTER_PLAN_TOOL="EnterPlanMode"
+
 # Global variables set by parse_agent_file
 DESCRIPTION=""
 MODEL=""
@@ -340,17 +354,43 @@ permission:"
     log_info "OpenCode: $agent_name"
 }
 
-# Copy skill directory to output location
+# Apply tool-specific template variables to all .md files in a directory
+apply_tool_vars() {
+    local dir="$1"
+    local prefix="$2"
+
+    local ask_user="${prefix}_ASK_USER_TOOL"
+    local invoke_skill="${prefix}_INVOKE_SKILL_TOOL"
+    local task_tracker="${prefix}_TASK_TRACKER_TOOL"
+    local dispatch_agent="${prefix}_DISPATCH_AGENT_TOOL"
+    local enter_plan="${prefix}_ENTER_PLAN_TOOL"
+
+    for md_file in "$dir"/*.md; do
+        [[ -f "$md_file" ]] || continue
+        local tmp="${md_file}.tmp"
+        sed -e "s/{{ASK_USER_TOOL}}/${!ask_user}/g" \
+            -e "s/{{INVOKE_SKILL_TOOL}}/${!invoke_skill}/g" \
+            -e "s/{{TASK_TRACKER_TOOL}}/${!task_tracker}/g" \
+            -e "s/{{DISPATCH_AGENT_TOOL}}/${!dispatch_agent}/g" \
+            -e "s/{{ENTER_PLAN_TOOL}}/${!enter_plan}/g" \
+            "$md_file" > "$tmp"
+        mv "$tmp" "$md_file"
+    done
+}
+
+# Copy skill directory to output location with template variable substitution
 copy_skill() {
     local skill_dir="$1"
     local output_base="$2"
     local label="$3"
+    local tool_prefix="$4"
     local skill_name
     skill_name=$(basename "$skill_dir")
     local output_dir="$output_base/$skill_name"
 
     mkdir -p "$output_dir"
     cp -r "$skill_dir"/* "$output_dir/"
+    apply_tool_vars "$output_dir" "$tool_prefix"
 
     log_info "$label skill: $skill_name"
 }
@@ -410,8 +450,8 @@ generate_all() {
         [[ -d "$skill_dir" ]] || continue
         [[ -f "$skill_dir/SKILL.md" ]] || continue
 
-        copy_skill "$skill_dir" "$CLAUDE_SKILLS_DIR" "Claude"
-        copy_skill "$skill_dir" "$OPENCODE_SKILLS_DIR" "OpenCode"
+        copy_skill "$skill_dir" "$CLAUDE_SKILLS_DIR" "Claude" "CLAUDE"
+        copy_skill "$skill_dir" "$OPENCODE_SKILLS_DIR" "OpenCode" "OPENCODE"
         ((skill_count++))
     done
 
@@ -570,11 +610,28 @@ Skill instructions in markdown.
 Reference supporting files with ./filename.md syntax.
 \`\`\`
 
+Skill Template Variables
+========================
+
+Skills can use {{VAR}} placeholders for tool-specific references.
+These are substituted per target tool during generation.
+
+Variable                 Claude Code          OpenCode
+-----------------------  -------------------  -------------------
+{{ASK_USER_TOOL}}        AskUserQuestion      AskUserQuestion
+{{INVOKE_SKILL_TOOL}}    Skill                Skill
+{{TASK_TRACKER_TOOL}}    TodoWrite            TodoWrite
+{{DISPATCH_AGENT_TOOL}}  Agent                Agent
+{{ENTER_PLAN_TOOL}}      EnterPlanMode        EnterPlanMode
+
+Update the variable mappings at the top of generate.sh when
+OpenCode equivalents are confirmed.
+
 Skill Output Mapping
 =====================
 
-Both Claude Code and OpenCode use the same native skill format.
-Skill directories are copied as-is (no transformation).
+Skill directories are copied with template variable substitution
+applied to all .md files.
 
 Source                          Claude Code                         OpenCode
 ------------------------------  ----------------------------------  ------------------------------------

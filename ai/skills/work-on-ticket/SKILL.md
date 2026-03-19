@@ -48,10 +48,10 @@ You MUST complete these steps in order:
 1. **Detect ticketing system** - identify where the ticket lives
 2. **Fetch the ticket** - retrieve the full ticket content
 3. **Fetch design context** - if the ticket has a parent/epic, fetch it to recover the design summary
-4. **Explore the codebase** - check current state of files relevant to the ticket
+4. **Explore the codebase** - check the current state of files relevant to the ticket
 5. **Present scope and context** - show the user what you understand the ticket requires, including the design context from the epic
-6. **User confirms scope** - get explicit approval before implementation
-7. **Invoke subagent-driven-development** - pass the ticket spec and design context as the approved design
+6. **User confirms scope** - use `{{ASK_USER_TOOL}}` to get explicit approval (see Presenting Scope below)
+7. **Invoke subagent-driven-development** - use the `{{INVOKE_SKILL_TOOL}}` tool to invoke `subagent-driven-development`, passing the ticket spec and design context as the approved design (see Passing to Subagent-Driven Development below)
 
 ## Detection
 
@@ -76,10 +76,10 @@ git remote get-url origin
 
 If MCP tools are unavailable:
 
-| System        | Command                                      |
-|---------------|----------------------------------------------|
+| System        | Command                                                                  |
+|---------------|--------------------------------------------------------------------------|
 | GitHub Issues | `gh issue view <number> --json title,body,labels,milestone,projectItems` |
-| GitLab Issues | `glab issue view <number>`                   |
+| GitLab Issues | `glab issue view <number>`                                               |
 
 ## Fetching the Ticket
 
@@ -97,7 +97,7 @@ Retrieve the full ticket content including:
 
 The parent relationship varies by system:
 
-**GitHub Issues:** Check for sub-issue relationships. Use `issue_read` to check if the issue has a parent. If available, the parent issue number will be in the response. Also check the issue body for "Part of #N" or "Epic: #N" references.
+**GitHub Issues:** Check for sub-issue relationships. Use `issue_read` to check if the issue has a parent. If available, the parent issue number will be in the response. Also, check the issue body for "Part of #N" or "Epic: #N" references.
 
 **Jira:** Use `getJiraIssue` and check the `parent` or `epic` field. Jira natively supports epic-to-story relationships.
 
@@ -135,18 +135,43 @@ Before invoking subagent-driven-development, present the user with a structured 
 
 **Current codebase state:** [relevant observations from exploring the code]
 
-Ask: "Does this look right? Any adjustments before I start implementation?"
+After presenting the summary, use the `{{ASK_USER_TOOL}}` tool to get a structured confirmation. Do NOT ask as plain text.
+
+```
+{{ASK_USER_TOOL}}:
+  question: "Does this scope look right for implementation?"
+  header: "Scope"
+  options:
+    - label: "Looks good, proceed"
+      description: "The scope, design context, and acceptance criteria are correct. Start implementation."
+    - label: "Adjust scope"
+      description: "Something needs changing before implementation begins."
+    - label: "Need more context"
+      description: "Fetch additional tickets or explore the codebase further before deciding."
+  multiSelect: false
+```
+
+If the user selects "Adjust scope" or "Need more context", address their feedback and re-present with `{{ASK_USER_TOOL}}` again. Only proceed to step 7 after the user selects "Looks good, proceed".
 
 ## Passing to Subagent-Driven Development
 
-Once the user confirms, invoke subagent-driven-development with a constructed design input that combines:
+Once the user confirms (by selecting "Looks good, proceed"), you MUST use the `{{INVOKE_SKILL_TOOL}}` tool to invoke the `subagent-driven-development` skill. Do NOT attempt to follow the subagent-driven-development process yourself without loading the skill first.
+
+```
+{{INVOKE_SKILL_TOOL}}:
+  skill: "subagent-driven-development"
+```
+
+Before invoking the skill, construct the design input in your message context by combining:
 
 1. **The design context** from the epic (the architectural vision)
 2. **The ticket scope** (what specifically this ticket delivers)
-3. **The acceptance criteria** (when is this ticket done)
+3. **The acceptance criteria** (when this ticket is done)
 4. **Codebase observations** (current state of relevant files)
 
 This combined context serves as the "approved design" that subagent-driven-development expects. The ticket's acceptance criteria become the spec that the spec reviewer checks against.
+
+**Critical:** The transition to subagent-driven-development is a `{{INVOKE_SKILL_TOOL}}` tool invocation, not a conceptual handoff. If you skip this step, the downstream skill's full instructions will not be loaded and implementation quality will suffer.
 
 ## Handling Multiple Tickets
 

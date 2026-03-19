@@ -27,11 +27,11 @@ Plan mode is the native environment for brainstorming. It provides:
 
 ## Checklist
 
-You MUST enter plan mode before brainstorming.
+You MUST enter plan mode (use `{{ENTER_PLAN_TOOL}}`) before brainstorming.
 
-You MUST create a task for each of these items and complete them in order:
+You MUST create a task (using `{{TASK_TRACKER_TOOL}}`) for each of these items and complete them in order:
 
-1. **Offer guided mode** - ask: "Are you familiar with this codebase, or would you like me to walk you through the relevant parts as we design? The guided version explains architecture, patterns, and conventions as we go." If the user wants the guided version, invoke the guided-brainstorming skill and stop. Otherwise, continue.
+1. **Offer guided mode** - use `{{ASK_USER_TOOL}}` to ask whether the user wants guided or standard brainstorming (see Offering Guided Mode below). If the user wants the guided version, invoke the guided-brainstorming skill using `{{INVOKE_SKILL_TOOL}}` and stop. Otherwise, continue.
 2. **Explore project context** - check files, docs, recent commits
 3. **Ask clarifying questions** - one at a time, understand purpose/constraints/success criteria
 4. **Propose 2-3 approaches** - with trade-offs and your recommendation
@@ -39,7 +39,7 @@ You MUST create a task for each of these items and complete them in order:
 6. **Confirm final design** - summarise the agreed design in a structured message
 7. **Design review loop** - dispatch design-reviewer subagent against the summary; fix issues and re-dispatch until approved (max three iterations, then surface to human)
 8. **User approves final design** - present the reviewed design summary, get explicit user approval
-9. **Decide next step** - ask: "Would you like to create tickets for this work, or start implementation now?"
+9. **Decide next step** - use `{{ASK_USER_TOOL}}` to ask what to do next (see Next Steps below)
 
 ## Process Flow
 
@@ -157,21 +157,51 @@ The reviewer checks for:
 
 **Process:**
 
-1. Dispatch design-reviewer subagent (see design-reviewer-prompt.md)
+1. Dispatch design-reviewer subagent using `{{DISPATCH_AGENT_TOOL}}` (see design-reviewer-prompt.md)
 2. If issues are found: fix the design summary and re-dispatch
 3. Repeat until approved (max three iterations, then surface to human for guidance)
 
 After the review loop passes, present the final design summary to the user and get explicit approval before proceeding. If the user requests changes, make them and re-run the review loop.
 
+## Offering Guided Mode
+
+At the start of brainstorming, use `{{ASK_USER_TOOL}}` to determine whether the user wants guided or standard mode. Do NOT ask as plain text.
+
+```
+{{ASK_USER_TOOL}}:
+  question: "Are you familiar with this codebase, or would you like me to walk you through the relevant parts as we design?"
+  header: "Mode"
+  options:
+    - label: "Standard brainstorming"
+      description: "I know the codebase. Let's focus on reaching a design efficiently."
+    - label: "Guided brainstorming"
+      description: "Walk me through the architecture, patterns, and conventions as we go."
+  multiSelect: false
+```
+
+If the user selects "Guided brainstorming", invoke the guided-brainstorming skill using `{{INVOKE_SKILL_TOOL}}` and stop.
+
 ## Next Steps
 
-Once the user approves the reviewed design, ask what they'd like to do:
+Once the user approves the reviewed design, use `{{ASK_USER_TOOL}}` to determine next steps. Do NOT ask as plain text.
 
-**Create tickets:** Invoke the create-tickets skill to break the design into tickets in the project's ticketing system. Use this when the work isn't happening right now, needs tracking, or involves multiple people. The full design is embedded in the epic body so that work-on-ticket can recover it in a future session.
+```
+{{ASK_USER_TOOL}}:
+  question: "Would you like to create tickets for this work, or start implementation now?"
+  header: "Next step"
+  options:
+    - label: "Create tickets"
+      description: "Break the design into tracked tickets. Good when work isn't happening right now, needs tracking, or involves multiple people."
+    - label: "Start implementation"
+      description: "Begin building now using subagent-driven development."
+  multiSelect: false
+```
 
-**Start implementation:** Invoke the subagent-driven-development skill to begin building. This decomposes the design into tasks and executes them with subagents. Use this when the user wants to start building immediately.
+**Create tickets:** Use `{{INVOKE_SKILL_TOOL}}` to invoke the create-tickets skill. The full design is embedded in the epic body so that work-on-ticket can recover it in a future session.
 
-Do NOT invoke any other skill. The only skills you invoke after brainstorming are create-tickets or subagent-driven-development.
+**Start implementation:** Use `{{INVOKE_SKILL_TOOL}}` to invoke the subagent-driven-development skill. This decomposes the design into tasks and executes them with subagents.
+
+Do NOT invoke any other skill. The only downstream skills are create-tickets or subagent-driven-development.
 
 ## Key Principles
 

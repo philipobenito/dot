@@ -25,7 +25,7 @@ If CLAUDE.md, GEMINI.md, or AGENTS.md says "don't use TDD" and a skill says "alw
 
 ## How to Access Skills
 
-**In Claude Code:** Use the `Skill` tool. When you invoke a skill, its content is loaded and presented to you—follow it directly. Never use the Read tool on skill files.
+**In Claude Code:** Use the `{{INVOKE_SKILL_TOOL}}` tool. When you invoke a skill, its content is loaded and presented to you - follow it directly. Never use the Read tool on skill files.
 
 **In Gemini CLI:** Skills activate via the `activate_skill` tool. Gemini loads skill metadata at the session start and activates the full content on demand.
 
@@ -35,35 +35,35 @@ If CLAUDE.md, GEMINI.md, or AGENTS.md says "don't use TDD" and a skill says "alw
 
 ## The Rule
 
-**Invoke relevant or requested skills BEFORE any response or action.** Even a 1% chance a skill might apply means that you should invoke the skill to check. If an invoked skill turns out to be wrong for the situation, you don't need to use it.
+**Invoke relevant or requested skills (using `{{INVOKE_SKILL_TOOL}}`) BEFORE any response or action.** Even a 1% chance a skill might apply means that you should invoke the skill to check. If an invoked skill turns out to be wrong for the situation, you don't need to use it.
 
 ```dot
 digraph skill_flow {
     "User message received" [shape=doublecircle];
-    "About to EnterPlanMode?" [shape=doublecircle];
+    "About to {{ENTER_PLAN_TOOL}}?" [shape=doublecircle];
     "Already brainstormed?" [shape=diamond];
     "Invoke brainstorming skill" [shape=box];
     "Might any skill apply?" [shape=diamond];
-    "Invoke Skill tool" [shape=box];
+    "Invoke {{INVOKE_SKILL_TOOL}} tool" [shape=box];
     "Announce: 'Using [skill] to [purpose]'" [shape=box];
     "Has checklist?" [shape=diamond];
-    "Create TodoWrite todo per item" [shape=box];
+    "Create {{TASK_TRACKER_TOOL}} todo per item" [shape=box];
     "Follow skill exactly" [shape=box];
     "Respond (including clarifications)" [shape=doublecircle];
 
-    "About to EnterPlanMode?" -> "Already brainstormed?";
+    "About to {{ENTER_PLAN_TOOL}}?" -> "Already brainstormed?";
     "Already brainstormed?" -> "Invoke brainstorming skill" [label="no"];
     "Already brainstormed?" -> "Might any skill apply?" [label="yes"];
     "Invoke brainstorming skill" -> "Might any skill apply?";
 
     "User message received" -> "Might any skill apply?";
-    "Might any skill apply?" -> "Invoke Skill tool" [label="yes, even 1%"];
+    "Might any skill apply?" -> "Invoke {{INVOKE_SKILL_TOOL}} tool" [label="yes, even 1%"];
     "Might any skill apply?" -> "Respond (including clarifications)" [label="definitely not"];
-    "Invoke Skill tool" -> "Announce: 'Using [skill] to [purpose]'";
+    "Invoke {{INVOKE_SKILL_TOOL}} tool" -> "Announce: 'Using [skill] to [purpose]'";
     "Announce: 'Using [skill] to [purpose]'" -> "Has checklist?";
-    "Has checklist?" -> "Create TodoWrite todo per item" [label="yes"];
+    "Has checklist?" -> "Create {{TASK_TRACKER_TOOL}} todo per item" [label="yes"];
     "Has checklist?" -> "Follow skill exactly" [label="no"];
-    "Create TodoWrite todo per item" -> "Follow skill exactly";
+    "Create {{TASK_TRACKER_TOOL}} todo per item" -> "Follow skill exactly";
 }
 ```
 

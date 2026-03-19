@@ -19,10 +19,10 @@ Before dispatching any subagent, check the available subagent types and select t
 
 1. Look at the task: what language, framework, or domain does it involve?
 2. Check the available subagent types for a match (e.g. `typescript-pro` for TypeScript, `react-specialist` for React components, `python-pro` for Python, `code-reviewer` for reviews)
-3. If a specialised type matches, use it via the `subagent_type` parameter
+3. If a specialised type matches, use it via the `subagent_type` parameter on `{{DISPATCH_AGENT_TOOL}}`
 4. Fall back to `general-purpose` only when no specialised type fits
 
-This applies to implementers, spec reviewers, and code quality reviewers alike. A TypeScript task should be implemented by a TypeScript specialist, and reviewed by a code reviewer specialist, not by three general-purpose agents.
+This applies to implementers, spec reviewers, and code quality reviewers alike. A TypeScript task should be implemented by a TypeScript specialist and reviewed by a code reviewer specialist, not by three general-purpose agents.
 
 **During task decomposition**, annotate each task with the recommended subagent type. This avoids re-evaluating the selection at dispatch time and makes the choice explicit and reviewable.
 
@@ -83,7 +83,7 @@ Order tasks to respect dependencies:
 
 ### Output
 
-The decomposition produces a TodoWrite with all tasks. Each task entry includes:
+The decomposition produces a {{TASK_TRACKER_TOOL}} with all tasks. Each task entry includes:
 
 - Task name and description
 - Recommended subagent type (e.g. `typescript-pro`, `python-pro`, `react-specialist`)
@@ -111,14 +111,14 @@ digraph process {
         "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" [shape=box];
         "Code quality reviewer subagent approves?" [shape=diamond];
         "Implementer subagent fixes quality issues" [shape=box];
-        "Mark task complete in TodoWrite" [shape=box];
+        "Mark task complete in {{TASK_TRACKER_TOOL}}" [shape=box];
     }
 
-    "Decompose design into tasks, map files, select subagent types, create TodoWrite" [shape=box];
+    "Decompose design into tasks, map files, select subagent types, create {{TASK_TRACKER_TOOL}}" [shape=box];
     "More tasks remain?" [shape=diamond];
     "Dispatch final code reviewer subagent for entire implementation" [shape=box];
 
-    "Decompose design into tasks, map files, select subagent types, create TodoWrite" -> "Select specialised subagent type\n(from task annotation)";
+    "Decompose design into tasks, map files, select subagent types, create {{TASK_TRACKER_TOOL}}" -> "Select specialised subagent type\n(from task annotation)";
     "Select specialised subagent type\n(from task annotation)" -> "Dispatch implementer subagent (./implementer-prompt.md)";
     "Dispatch implementer subagent (./implementer-prompt.md)" -> "Implementer subagent asks questions?";
     "Implementer subagent asks questions?" -> "Answer questions, provide context" [label="yes"];
@@ -132,8 +132,8 @@ digraph process {
     "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" -> "Code quality reviewer subagent approves?";
     "Code quality reviewer subagent approves?" -> "Implementer subagent fixes quality issues" [label="no"];
     "Implementer subagent fixes quality issues" -> "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" [label="re-review"];
-    "Code quality reviewer subagent approves?" -> "Mark task complete in TodoWrite" [label="yes"];
-    "Mark task complete in TodoWrite" -> "More tasks remain?";
+    "Code quality reviewer subagent approves?" -> "Mark task complete in {{TASK_TRACKER_TOOL}}" [label="yes"];
+    "Mark task complete in {{TASK_TRACKER_TOOL}}" -> "More tasks remain?";
     "More tasks remain?" -> "Select specialised subagent type\n(from task annotation)" [label="yes"];
     "More tasks remain?" -> "Dispatch final code reviewer subagent for entire implementation" [label="no"];
 }
@@ -184,7 +184,7 @@ Implementer subagents report one of four statuses. Handle each appropriately:
 You: I'm using Subagent-Driven Development to implement this design.
 
 [Decompose design into tasks: map file structure, define 5 tasks with acceptance criteria]
-[Create TodoWrite with all tasks]
+[Create {{TASK_TRACKER_TOOL}} with all tasks]
 
 Task 1: Hook installation script
 
@@ -285,7 +285,7 @@ Done!
 - Skip reviews (spec compliance OR code quality)
 - Proceed with unfixed issues
 - Dispatch multiple implementation subagents in parallel (conflicts)
-- Make subagent discover context on its own (provide full text instead)
+- Make a subagent discover context on its own (provide full text instead)
 - Skip scene-setting context (subagent needs to understand where a task fits)
 - Ignore subagent questions (answer before letting them proceed)
 - Accept "close enough" on spec compliance (spec reviewer found issues = not done)

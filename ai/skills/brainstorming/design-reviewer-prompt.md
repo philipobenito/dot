@@ -7,7 +7,7 @@ Use this template when dispatching a design reviewer subagent.
 **Dispatch after:** Design summary has been consolidated from the brainstorming conversation.
 
 ```
-Agent tool (general-purpose):
+{{DISPATCH_AGENT_TOOL}} (general-purpose):
   description: "Review design summary"
   prompt: |
     You are a design reviewer. Verify this design is complete and ready for implementation planning.

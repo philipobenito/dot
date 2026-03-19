@@ -65,12 +65,12 @@ Each agent gets:
 
 ### 3. Dispatch in Parallel
 
-```typescript
-// In Claude Code / AI environment
-Task("Fix agent-tool-abort.test.ts failures")
-Task("Fix batch-completion-behavior.test.ts failures")
-Task("Fix tool-approval-race-conditions.test.ts failures")
-// All three run concurrently
+Dispatch all agents in a single message using `{{DISPATCH_AGENT_TOOL}}` so they run concurrently:
+
+```
+{{DISPATCH_AGENT_TOOL}}: "Fix agent-tool-abort.test.ts failures"
+{{DISPATCH_AGENT_TOOL}}: "Fix batch-completion-behavior.test.ts failures"
+{{DISPATCH_AGENT_TOOL}}: "Fix tool-approval-race-conditions.test.ts failures"
 ```
 
 ### 4. Review and Integrate
@@ -180,7 +180,7 @@ For each agent being dispatched:
 
 1. What language, framework, or domain does the problem involve?
 2. Is there a specialised subagent type that fits? (e.g. `typescript-pro` for TypeScript test failures, `python-pro` for Python issues, `debugger` for diagnostic work)
-3. Use it via the `subagent_type` parameter
+3. Use it via the `subagent_type` parameter on `{{DISPATCH_AGENT_TOOL}}`
 4. Fall back to `general-purpose` only when no specialised type fits
 
 When dispatching multiple agents in parallel, each can use a different specialised type based on its specific problem domain.

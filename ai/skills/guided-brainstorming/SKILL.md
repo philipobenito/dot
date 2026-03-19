@@ -5,7 +5,7 @@ description: "Learning-oriented brainstorming for developers unfamiliar with a c
 
 # Guided Brainstorming
 
-Help turn ideas into fully formed designs while teaching the developer about the codebase. Same flow as brainstorming, but every phase actively explains what it finds, why things are the way they are, and how the design fits with existing patterns.
+Help turn ideas into fully formed designs while teaching the developer about the codebase. The same flow as brainstorming, but every phase actively explains what it finds, why things are the way they are, and how the design fits with existing patterns.
 
 <HARD-GATE>
 Do NOT invoke any implementation skill, write any code, scaffold any project, or take any implementation action until you have presented a design and the user has approved it. This applies to EVERY project regardless of perceived simplicity.
@@ -33,18 +33,18 @@ Plan mode is the native environment for guided brainstorming. It provides:
 
 ## Checklist
 
-You MUST enter plan mode before guided brainstorming.
+You MUST enter plan mode (use `{{ENTER_PLAN_TOOL}}`) before guided brainstorming.
 
-You MUST create a task for each of these items and complete them in order:
+You MUST create a task (using `{{TASK_TRACKER_TOOL}}`) for each of these items and complete them in order:
 
 1. **Guided codebase walkthrough** - explore the project and present a structured overview of architecture, relevant subsystems, and conventions
 2. **Ask clarifying questions** - one at a time, contextualised against what the codebase already does
 3. **Propose 2-3 approaches** - with trade-offs explained in terms of how each fits with existing code
 4. **Present design** - in sections scaled to their complexity, get user approval after each section
 5. **Confirm final design** - summarise the agreed design in a structured message
-6. **Design review loop** - dispatch design-reviewer subagent against the summary; fix issues and re-dispatch until approved (max three iterations, then surface to human)
+6. **Design review loop** - dispatch design-reviewer subagent using `{{DISPATCH_AGENT_TOOL}}` against the summary; fix issues and re-dispatch until approved (max three iterations, then surface to human)
 7. **User approves final design** - present the reviewed design summary, get explicit user approval
-8. **Decide next step** - ask: "Would you like to create tickets for this work, or start implementation now?"
+8. **Decide next step** - use `{{ASK_USER_TOOL}}` to ask what to do next (see Next Steps below)
 
 ## Process Flow
 
@@ -104,7 +104,7 @@ This replaces brainstorming's silent "explore project context" step. Read the co
 - Key dependencies and why they're used
 
 **Relevant subsystems:**
-- Which parts of the codebase relate to what the user wants to build
+- Which parts of the codebase relate to what the user wants to build?
 - How those parts work and interact
 - Any existing code that does something similar to what's being proposed
 
@@ -122,7 +122,7 @@ If the user asks follow-up questions, explore further. This phase is not rushed 
 
 ### Phase 2: Contextualised Clarifying Questions
 
-Same rules as brainstorming (one question at a time, prefer multiple choice) but each question references what you found in the codebase:
+Same rules as brainstorming (one question at a time, prefer multiple choice questions), but each question references what you found in the codebase:
 
 - "The codebase currently handles authentication with middleware in `src/middleware/auth.ts`. Should the new feature integrate with that, or does it need its own auth approach?"
 - "I see the project uses the repository pattern for data access (e.g. `UserRepository`, `OrderRepository`). Should we follow that for this feature?"
@@ -189,7 +189,7 @@ The reviewer checks for:
 
 **Process:**
 
-1. Dispatch design-reviewer subagent (use the same design-reviewer-prompt.md from brainstorming skill)
+1. Dispatch design-reviewer subagent using `{{DISPATCH_AGENT_TOOL}}` (use the same design-reviewer-prompt.md from brainstorming skill)
 2. If issues are found: fix the design summary and re-dispatch
 3. Repeat until approved (max three iterations, then surface to human for guidance)
 
@@ -197,13 +197,25 @@ After the review loop passes, present the final design summary to the user and g
 
 ## Next Steps
 
-Once the user approves the reviewed design, ask what they'd like to do:
+Once the user approves the reviewed design, use `{{ASK_USER_TOOL}}` to determine next steps. Do NOT ask as plain text.
 
-**Create tickets:** Invoke the create-tickets skill to break the design into tickets in the project's ticketing system. Use this when the work isn't happening right now, needs tracking, or involves multiple people.
+```
+{{ASK_USER_TOOL}}:
+  question: "Would you like to create tickets for this work, or start implementation now?"
+  header: "Next step"
+  options:
+    - label: "Create tickets"
+      description: "Break the design into tracked tickets. Good when work isn't happening right now, needs tracking, or involves multiple people."
+    - label: "Start implementation"
+      description: "Begin building now using subagent-driven development."
+  multiSelect: false
+```
 
-**Start implementation:** Invoke the subagent-driven-development skill to begin building. This decomposes the design into tasks and executes them with subagents. Use this when the user wants to start building immediately.
+**Create tickets:** Use `{{INVOKE_SKILL_TOOL}}` to invoke the create-tickets skill. The full design is embedded in the epic body so that work-on-ticket can recover it in a future session.
 
-Do NOT invoke any other skill. The only skills you invoke after guided brainstorming are create-tickets or subagent-driven-development.
+**Start implementation:** Use `{{INVOKE_SKILL_TOOL}}` to invoke the subagent-driven-development skill. This decomposes the design into tasks and executes them with subagents.
+
+Do NOT invoke any other skill. The only downstream skills are create-tickets or subagent-driven-development.
 
 ## Key Principles
 
