@@ -7,7 +7,7 @@ description: "Use after brainstorming when the user chooses to create tickets in
 
 Turn an approved design into tickets in the project's ticketing system. Detects the system automatically, decomposes the design into right-sized tickets, creates them with proper dependencies and ordering.
 
-**Announce at start:** "I'm using the create-tickets skill to break this design into tracked tickets."
+**Announce at the start:** "I'm using the create-tickets skill to break this design into tracked tickets."
 
 **Context:** The design from brainstorming lives in the conversation context. Use it as the source of truth for what to ticket.
 
@@ -19,12 +19,12 @@ Identify the ticketing system by checking signals in this order:
 
 Check which MCP tools are available in your environment:
 
-| MCP Tool Pattern | System |
-|---|---|
-| `mcp__*Atlassian*__createJiraIssue` | Jira |
-| `mcp__*github*__issue_write` | GitHub Issues |
-| Linear MCP tools | Linear |
-| GitLab MCP tools | GitLab Issues |
+| MCP Tool Pattern                    | System        |
+|-------------------------------------|---------------|
+| `mcp__*Atlassian*__createJiraIssue` | Jira          |
+| `mcp__*github*__issue_write`        | GitHub Issues |
+| Linear MCP tools                    | Linear        |
+| GitLab MCP tools                    | GitLab Issues |
 
 ### 2. Git Remote
 
@@ -34,17 +34,17 @@ If MCP tools don't disambiguate:
 git remote get-url origin
 ```
 
-| Remote Contains | System |
-|---|---|
-| `github.com` | GitHub Issues |
-| `gitlab.com` | GitLab Issues |
-| `dev.azure.com` | Azure DevOps |
+| Remote Contains | System        |
+|-----------------|---------------|
+| `github.com`    | GitHub Issues |
+| `gitlab.com`    | GitLab Issues |
+| `dev.azure.com` | Azure DevOps  |
 
 ### 3. Resolution
 
 - **One system detected**: Confirm with the user and proceed
 - **Multiple systems detected**: Present what was found, ask which to use
-- **None detected**: Offer a structured markdown document as fallback
+- **None detected**: Offer a structured Markdown document as a fallback
 
 ## Decomposition
 
@@ -52,12 +52,12 @@ git remote get-url origin
 
 The design summary from brainstorming contains architecture, components, data flow, and interfaces. Map these to tickets:
 
-| Design Element | Ticket Type |
-|---|---|
-| Overall goal | Epic or parent issue |
-| Independent component | Individual ticket |
-| Cross-cutting concern (auth, logging, config) | Individual ticket |
-| Integration between components | Individual ticket, depends on component tickets |
+| Design Element                                | Ticket Type                                     |
+|-----------------------------------------------|-------------------------------------------------|
+| Overall goal                                  | Epic or parent issue                            |
+| Independent component                         | Individual ticket                               |
+| Cross-cutting concern (auth, logging, config) | Individual ticket                               |
+| Integration between components                | Individual ticket, depends on component tickets |
 
 ### Ticket Content
 
@@ -73,7 +73,7 @@ Each ticket includes:
 
 ### Sizing
 
-Each ticket should be completable in a single focused session. If a component needs more, break it into sub-tickets. The rule of thumb: if you can't describe the acceptance criteria in 3-5 bullet points, the ticket is too large.
+Each ticket should be achievable in a single focused session. If a component needs more, break it into sub-tickets. The rule of thumb: if you can't describe the acceptance criteria in 3-5 bullet points, the ticket is too large.
 
 ### Ordering
 
@@ -82,7 +82,7 @@ Present tickets in suggested implementation order:
 1. Foundation/infrastructure tickets first
 2. Core feature tickets next
 3. Integration tickets after their dependencies
-4. Polish/cleanup tickets last
+4. Polish/clean-up tickets last
 
 ## Creating Tickets
 
@@ -126,7 +126,7 @@ glab issue create --title "..." --description "..."
 
 ### Markdown Fallback
 
-If no ticketing system is available, write a structured markdown file:
+If no ticketing system is available, write a structured Markdown file:
 
 ```markdown
 # [Feature Name] - Tickets
@@ -149,7 +149,7 @@ Save to the project root or a location the user specifies.
 Report:
 
 - Number of tickets created
-- Links to each ticket (or file path for markdown fallback)
+- Links to each ticket (or file path for Markdown fallback)
 - Suggested implementation order
 - Dependencies between tickets
 
