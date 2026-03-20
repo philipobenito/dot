@@ -1,15 +1,15 @@
 ---
 name: subagent-driven-development
-description: Use when implementing an approved design or plan by decomposing it into tasks and executing each with a fresh subagent plus two-stage review
+description: Use when implementing an approved design or plan by decomposing it into tasks and executing each with a fresh subagent plus two-stage review. Includes complexity triage that routes genuinely simple mechanical work through a lightweight fast path (single implementation + single combined review) while preserving the full per-task decomposition and two-stage review for complex work
 ---
 
 # Subagent-Driven Development
 
-Decompose a design into implementable tasks, then execute each by dispatching a fresh subagent per task with a two-stage review after each: spec compliance review first, then code quality review.
+Implement an approved design by first triaging its complexity, then taking the appropriate path. Simple mechanical work (evidenced by strict binary criteria) gets a fast path: single implementation dispatch, single combined review. Complex work gets the full process: decompose into tasks, fresh subagent per task, two-stage review per task.
 
 **Why subagents:** You delegate tasks to specialised agents with an isolated context. By precisely crafting their instructions and context, you ensure they stay focused and succeed at their task. They should never inherit your session's context or history — you construct exactly what they need. This also preserves your own context for coordination work.
 
-**Core principle:** Design in, decompose into tasks, fresh subagent per task, two-stage review = high quality, fast iteration
+**Core principle:** Triage first, then either fast path (prove it's simple) or full path (decompose, implement per-task, two-stage review) = right-sized process for the work
 
 ## Subagent Type Selection
 
@@ -47,10 +47,124 @@ digraph when_to_use {
 - Fresh subagent per task (no context pollution)
 - Two-stage review after each task: spec compliance first, then code quality
 - Faster iteration (no human-in-loop between tasks)
+- Complexity triage routes are genuinely simple work through a lightweight fast path
 
-## Task Decomposition
+## Complexity Triage
 
-Before dispatching subagents, decompose the design into implementable tasks. The design from brainstorming (or an existing plan file) is the input.
+Before decomposing work into tasks, assess whether the full process is warranted. **The default is always the full path.** The fast path is an optimisation for genuinely mechanical work where the per-task overhead adds no quality benefit.
+
+### Why This Matters
+
+The full process (per-task decomposition, each with two-stage review) is transformative for complex work. But for mechanical changes, like updating a version string across 8 files or fixing the same wording in 6 config files, the full process spends more tokens on coordination than on the actual work. Those files do not need 8 implementer dispatches, 8 spec reviews, and 8 quality reviews. They need one pass and one check.
+
+The danger is that the fast path becomes an escape hatch from rigour. To prevent this, the triage uses strict binary criteria with mandatory evidence. You must prove the work is simple. You cannot assume it.
+
+### Triage Criteria
+
+**ALL** the following must be true for the fast path. A single failure means a full path, no exceptions.
+
+| # | Criterion                    | Definition                                                                             | Fails if                                                                                                    |
+|---|------------------------------|----------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------|
+| 1 | **Uniform change type**      | Every change is the same kind of edit applied across locations                         | Changes mix different concerns (e.g., docs + feature code, config + new logic)                              |
+| 2 | **No new logic**             | Zero new functions, classes, conditionals, loops, error handling, or business rules    | Any new control flow or callable unit is introduced                                                         |
+| 3 | **No new interfaces**        | No new exports, API endpoints, contracts, events, or public surface area               | Any new public-facing surface is created                                                                    |
+| 4 | **Deterministic from spec**  | The correct change at each location is fully specified with no room for interpretation | Any change requires a design decision, judgment call, or contextual understanding beyond the immediate edit |
+| 5 | **Independently verifiable** | Each change can be verified by reading it in isolation                                 | Correctness of one change depends on another change in a different file                                     |
+| 6 | **Small total delta**        | Under ~50 lines of meaningful content change across all files                          | More than ~50 lines of substantive change                                                                   |
+
+### Presenting the Evidence
+
+Present the triage table before proceeding on either path. This is mandatory. The user needs to see the reasoning and can override the classification.
+
+Format:
+
+```
+Complexity Triage
+
+| # | Criterion | Evidence | Pass |
+|---|-----------|----------|------|
+| 1 | Uniform change type | [specific observation] | Y/N |
+| 2 | No new logic | [specific observation] | Y/N |
+| 3 | No new interfaces | [specific observation] | Y/N |
+| 4 | Deterministic from spec | [specific observation] | Y/N |
+| 5 | Independently verifiable | [specific observation] | Y/N |
+| 6 | Small total delta | [line count estimate with method] | Y/N |
+
+Classification: SIMPLE / COMPLEX
+Path: Fast / Full
+Justification: [one sentence]
+```
+
+### Evidence Standards
+
+The evidence column must contain specific observations from the design, not restated criteria.
+
+**These cause the criterion to fail (insufficient evidence):**
+- "Changes are uniform" - restates the criterion, says nothing specific
+- "No significant new logic" - qualifier ("significant") reveals ambiguity
+- "Scope is small" - no numbers, no reasoning
+
+**These are acceptable evidence:**
+- "All 6 files: replace version string '2.3.0' with '2.4.0' in the module docstring header"
+- "Zero new functions, conditionals, or loops; each change is a string literal replacement"
+- "~18 lines total: 6 files x 3 lines each (version, date, changelog link)"
+
+If a criterion needs qualifying language ("mostly", "generally", "essentially", "largely", "primarily"), it fails. The fast path is for work that is unambiguously simple.
+
+### Triage Override
+
+If during fast-path implementation or review it becomes clear the work is more complex than assessed, stop the fast path and switch to full. The combined reviewer can trigger this by reporting TRIAGE_INVALID. The sunk cost of the fast-path attempt is negligible compared to the cost of poorly reviewed complex work.
+
+## Fast Path
+
+When triage classifies work as SIMPLE, the process collapses to two subagent dispatches total.
+
+### Process
+
+1. **Single implementation dispatch**: One subagent receives all changes as a batch. Use the standard implementer prompt (`./implementer-prompt.md`) with the task description covering the full scope. Select the subagent type as normal.
+
+2. **Single combined review**: One reviewer checks spec compliance and code quality in a single pass (`./fast-path-reviewer-prompt.md`). This is not a weaker review. It covers everything the two separate reviews cover, combined because the small scope makes separation unnecessary overhead.
+
+3. **One commit** for all changes.
+
+If the reviewer finds issues, the implementer fixes them and the reviewer reviews again. Same fix-and-re-review loop as the full path, with one reviewer instead of two sequential ones.
+
+If the reviewer reports TRIAGE_INVALID, stop and switch to the full path. Re-decompose the work using the full path process below.
+
+### Fast Path Flow
+
+```dot
+digraph fast_path {
+    rankdir=TB;
+
+    "Triage: SIMPLE" [shape=box, style=bold];
+    "Dispatch implementer\n(all changes as single batch)" [shape=box];
+    "Implementer asks questions?" [shape=diamond];
+    "Answer questions, provide context" [shape=box];
+    "Implementer implements, tests, commits, self-reviews" [shape=box];
+    "Dispatch combined reviewer\n(./fast-path-reviewer-prompt.md)" [shape=box];
+    "Reviewer result?" [shape=diamond];
+    "Implementer fixes issues" [shape=box];
+    "Switch to full path\n(re-decompose)" [shape=box];
+    "Done" [shape=box, style=bold];
+
+    "Triage: SIMPLE" -> "Dispatch implementer\n(all changes as single batch)";
+    "Dispatch implementer\n(all changes as single batch)" -> "Implementer asks questions?";
+    "Implementer asks questions?" -> "Answer questions, provide context" [label="yes"];
+    "Answer questions, provide context" -> "Dispatch implementer\n(all changes as single batch)";
+    "Implementer asks questions?" -> "Implementer implements, tests, commits, self-reviews" [label="no"];
+    "Implementer implements, tests, commits, self-reviews" -> "Dispatch combined reviewer\n(./fast-path-reviewer-prompt.md)";
+    "Dispatch combined reviewer\n(./fast-path-reviewer-prompt.md)" -> "Reviewer result?";
+    "Reviewer result?" -> "Done" [label="PASS"];
+    "Reviewer result?" -> "Implementer fixes issues" [label="FAIL"];
+    "Reviewer result?" -> "Switch to full path\n(re-decompose)" [label="TRIAGE_INVALID"];
+    "Implementer fixes issues" -> "Dispatch combined reviewer\n(./fast-path-reviewer-prompt.md)" [label="re-review"];
+}
+```
+
+## Task Decomposition (Full Path)
+
+When complexity triage classifies work as COMPLEX (the default), decompose the design into implementable tasks before dispatching subagents. The design from brainstorming (or an existing plan file) is the input.
 
 ### File Structure
 
@@ -92,7 +206,7 @@ The decomposition produces a {{TASK_TRACKER_TOOL}} with all tasks. Each task ent
 - Dependencies on other tasks
 - Scene-setting context (where this fits in the overall design)
 
-## The Process
+## The Process (Full Path)
 
 ```dot
 digraph process {
@@ -174,11 +288,49 @@ Implementer subagents report one of four statuses. Handle each appropriately:
 
 ## Prompt Templates
 
-- `./implementer-prompt.md` - Dispatch implementer subagent
-- `./spec-reviewer-prompt.md` - Dispatch spec compliance reviewer subagent
-- `./code-quality-reviewer-prompt.md` - Dispatch code quality reviewer subagent
+- `./implementer-prompt.md` - Dispatch implementer subagent (both paths)
+- `./spec-reviewer-prompt.md` - Dispatch spec compliance reviewer subagent (full path)
+- `./code-quality-reviewer-prompt.md` - Dispatch code quality reviewer subagent (full path)
+- `./fast-path-reviewer-prompt.md` - Dispatch combined reviewer subagent (fast path)
 
-## Example Workflow
+## Example Workflows
+
+### Fast Path Example
+
+```
+You: I'm implementing the design for updating copyright headers across the codebase.
+
+Complexity Triage
+
+| # | Criterion | Evidence | Pass |
+|---|-----------|----------|------|
+| 1 | Uniform change type | All 8 files: replace "Copyright 2025" with "Copyright 2026" in file header | Y |
+| 2 | No new logic | Zero new functions or control flow; each change is a string literal replacement | Y |
+| 3 | No new interfaces | No new exports, APIs, or contracts | Y |
+| 4 | Deterministic from spec | Design lists exact files and exact old/new strings | Y |
+| 5 | Independently verifiable | Each file's header change is self-contained | Y |
+| 6 | Small total delta | ~8 lines total (1 line per file x 8 files) | Y |
+
+Classification: SIMPLE
+Path: Fast
+Justification: Identical string replacement across 8 independent files with zero logic changes.
+
+[Dispatch single implementer with all 8 files as one batch]
+
+Implementer:
+  - Updated copyright year in all 8 files
+  - Self-review: All changes are consistent string replacements
+  - Committed
+
+[Dispatch combined reviewer with triage evidence table]
+
+Combined reviewer: [PASS] All 8 files correctly updated. Changes match spec exactly,
+no extra modifications, consistent with surrounding code style.
+
+Done!
+```
+
+### Full Path Example
 
 ```
 You: I'm using Subagent-Driven Development to implement this design.
@@ -308,6 +460,14 @@ Done!
 **If subagent fails task:**
 - Dispatch fix subagent with specific instructions
 - Don't try to fix manually (context pollution)
+
+**Complexity triage:**
+- Never classify work as SIMPLE without presenting the full evidence table
+- Never use qualifying language in evidence ("mostly", "largely", "primarily", "essentially")
+- Never skip the combined review on the fast path
+- Never continue the fast path after a TRIAGE_INVALID from the reviewer
+- Never use the fast path as a default. COMPLEX is the default. SIMPLE must be proven
+- Never split genuinely simple work into the full path to look thorough. That wastes tokens without adding quality
 
 ## Integration
 
