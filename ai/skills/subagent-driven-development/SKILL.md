@@ -260,6 +260,45 @@ When a tier has multiple tasks:
 3. Reviews for different tasks overlap naturally as implementers finish at different times.
 4. If a worktree merge produces conflicts, the dependency analysis missed a file overlap. Resolve the conflicts before continuing that task's review pipeline.
 
+### Worktree Lifecycle
+
+When dispatching implementers with `isolation: "worktree"`, the Agent tool creates a temporary git worktree on a fresh branch. Understanding the full lifecycle prevents lost work and stale branches.
+
+**Dispatch:**
+1. Set `isolation: "worktree"` and `run_in_background: true` on the Agent call
+2. Name the agent after its task for tracking (e.g. `"task-3-auth-middleware"`)
+3. The Agent tool creates a worktree and branch automatically
+
+**On completion:**
+1. The agent result includes the worktree branch name and path
+2. Merge the branch into the current working branch immediately:
+   ```
+   git merge <branch-name> --no-edit
+   ```
+3. If the merge conflicts, the dependency analysis missed a file overlap. Resolve conflicts before continuing that task's review pipeline
+4. Delete the merged branch to keep the repository tidy:
+   ```
+   git branch -d <branch-name>
+   ```
+5. Verify the merge landed cleanly by checking `git status` and running tests if appropriate
+6. Check for root-owned files left behind by the worktree subagent:
+   ```
+   find . -user root -not -path './.git/*' 2>/dev/null
+   ```
+   If any are found, fix ownership before continuing:
+   ```
+   sudo chown -R $(whoami) <affected-paths>
+   ```
+
+**Review and fix loops after merge:**
+- All reviews (spec compliance, code quality) run against the merged code on the main tree
+- If a reviewer finds issues, dispatch the fix subagent on the main tree directly (no worktree needed, the task is now sequential)
+- The fix subagent commits its fixes on the main tree
+
+**If an implementer reports without committing:**
+- The worktree is cleaned up and the changes are lost
+- The implementer prompt instructs subagents to commit all work, but if this happens, re-dispatch the implementer with the same task
+
 ### Tier Completion Gate
 
 Do NOT proceed to the next tier until every task in the current tier has completed its full per-task review pipeline (spec review PASS and quality review PASS). Before starting the next tier, verify each task in the {{TASK_TRACKER_TOOL}} shows both reviews passed.
@@ -394,9 +433,9 @@ You: I'm using Subagent-Driven Development to implement this design.
 
 Tier 0 - dispatching Tasks 1 and 2 in parallel (worktree isolation)
 
-Task 1: Hook installation script
+[Dispatch both implementers with isolation: "worktree", run_in_background: true]
 
-[Dispatch implementation subagent with full task text + context]
+Task 1 completes first:
 
 Implementer: "Before I begin - should the hook be installed at user or system level?"
 
@@ -407,8 +446,9 @@ Implementer: "Got it. Implementing now..."
   - Implemented install-hook command
   - Added tests, 5/5 passing
   - Self-review: Found I missed --force flag, added it
-  - Committed
+  - Committed all changes
 
+[Merge worktree branch to main, delete branch]
 [Dispatch spec compliance reviewer]
 Spec reviewer: [PASS] Spec compliant - all requirements met, nothing extra
 
@@ -417,23 +457,22 @@ Code reviewer: Strengths: Good test coverage, clean. Issues: None. Approved.
 
 [Mark Task 1 complete]
 
-Task 2: Recovery modes (was dispatched in parallel with Task 1)
-
-[Dispatch implementation subagent with full task text + context]
+Task 2 completes:
 
 Implementer: [No questions, proceeds]
 Implementer:
   - Added verify/repair modes
   - 8/8 tests passing
   - Self-review: All good
-  - Committed
+  - Committed all changes
 
+[Merge worktree branch to main, delete branch]
 [Dispatch spec compliance reviewer]
 Spec reviewer: [FAIL] Issues:
   - Missing: Progress reporting (spec says "report every 100 items")
   - Extra: Added --json flag (not requested)
 
-[Implementer fixes issues]
+[Dispatch fix subagent on main tree (no worktree, task is now sequential)]
 Implementer: Removed --json flag, added progress reporting
 
 [Spec reviewer reviews again]
@@ -442,14 +481,14 @@ Spec reviewer: [PASS] Spec compliant now
 [Dispatch code quality reviewer]
 Code reviewer: Strengths: Solid. Issues (Important): Magic number (100)
 
-[Implementer fixes]
+[Implementer fixes on main tree]
 Implementer: Extracted PROGRESS_INTERVAL constant
 
 [Code reviewer reviews again]
 Code reviewer: [PASS] Approved
 
 [Mark Task 2 complete]
-[Tier 0 complete - merge worktree branches to main]
+[Tier 0 complete]
 
 Tier 1 - Tasks 3-5 (sequential within tier due to dependencies)
 
@@ -498,6 +537,10 @@ Done!
 - Proceed with unfixed issues
 - Dispatch parallel implementers without worktree isolation (git conflicts)
 - Dispatch parallel implementers for tasks that share files or have dependencies
+- Proceed to review before merging the worktree branch back to the main tree
+- Leave worktree branches un-merged or un-deleted after task completion (branch litter)
+- Dispatch fix subagents back into a worktree that has already been cleaned up (fix on the main tree instead)
+- Allow subagents to use `sudo` or elevated privileges (creates root-owned files that break cleanup and pollute the main tree)
 - Proceed to the next tier before every task in the current tier has both spec review PASS and quality review PASS (the tier completion gate is not optional)
 - Make a subagent discover context on its own (provide full text instead)
 - Skip scene-setting context (subagent needs to understand where a task fits)

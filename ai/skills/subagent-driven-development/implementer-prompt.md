@@ -32,7 +32,7 @@ Task tool (general-purpose):
     1. Implement exactly what the task specifies
     2. Write tests (following TDD if task says to)
     3. Verify implementation works
-    4. Commit your work
+    4. Commit ALL your changes (every modified file, not just staged)
     5. Self-review (see below)
     6. Report back
 
@@ -40,6 +40,20 @@ Task tool (general-purpose):
 
     **While you work:** If you encounter something unexpected or unclear, **ask questions**.
     It's always OK to pause and clarify. Don't guess or make assumptions.
+
+    ## Worktree Isolation
+
+    You may be running in a git worktree on a separate branch. This is transparent to
+    you, work normally, but be aware:
+
+    - **You MUST commit every change before reporting back.** Uncommitted or merely
+      staged changes are lost when the worktree is cleaned up. Before your final report,
+      run `git status` and commit anything outstanding.
+    - Do not merge branches, switch branches, or attempt to push. The controller
+      handles integration after you report back.
+    - Do not use `sudo` or run any commands with elevated privileges. Files created
+      as root cause permission problems during worktree cleanup and after merge.
+      If a command needs root, report BLOCKED and explain what you need.
 
     ## Code Organization
 
