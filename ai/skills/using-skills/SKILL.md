@@ -48,8 +48,8 @@ digraph skill_flow {
     "Announce: 'Using [skill] to [purpose]'" [shape=box];
     "Has checklist?" [shape=diamond];
     "Create {{TASK_TRACKER_TOOL}} todo per item" [shape=box];
-    "Follow skill exactly" [shape=box];
-    "Respond (including clarifications)" [shape=doublecircle];
+    "Follow skill exactly" [style=bold];
+    "Respond (including clarifications)" [style=bold];
 
     "About to {{ENTER_PLAN_TOOL}}?" -> "Already brainstormed?";
     "Already brainstormed?" -> "Invoke brainstorming skill" [label="no"];

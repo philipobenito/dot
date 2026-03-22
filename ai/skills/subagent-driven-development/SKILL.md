@@ -1,15 +1,15 @@
 ---
 name: subagent-driven-development
-description: Use when implementing an approved design or plan by decomposing it into tasks and executing each with a fresh subagent plus two-stage review. Includes complexity triage that routes genuinely simple mechanical work through a lightweight fast path (single implementation + single combined review) while preserving the full per-task decomposition and two-stage review for complex work
+description: Use when implementing an approved design or plan by decomposing it into tasks and executing each with a fresh subagent plus two-stage review. Dispatches independent tasks in parallel using worktrees for isolation. Includes complexity triage that routes genuinely simple mechanical work through a lightweight fast path (single implementation + single combined review) while preserving the full per-task decomposition and two-stage review for complex work
 ---
 
 # Subagent-Driven Development
 
-Implement an approved design by first triaging its complexity, then taking the appropriate path. Simple mechanical work (evidenced by strict binary criteria) gets a fast path: single implementation dispatch, single combined review. Complex work gets the full process: decompose into tasks, fresh subagent per task, two-stage review per task.
+Implement an approved design by first triaging its complexity, then taking the appropriate path. Simple mechanical work (evidenced by strict binary criteria) gets a fast path: single implementation dispatch, single combined review. Complex work gets the full process: decompose into dependency-tiered tasks, dispatch independent tasks in parallel using worktrees, fresh subagent per task, two-stage review per task.
 
 **Why subagents:** You delegate tasks to specialised agents with an isolated context. By precisely crafting their instructions and context, you ensure they stay focused and succeed at their task. They should never inherit your session's context or history — you construct exactly what they need. This also preserves your own context for coordination work.
 
-**Core principle:** Triage first, then either fast path (prove it's simple) or full path (decompose, implement per-task, two-stage review) = right-sized process for the work
+**Core principle:** Triage first, then either fast path (prove it's simple) or full path (decompose into dependency tiers, dispatch independent tasks in parallel, two-stage review per task) = right-sized process for the work
 
 ## Subagent Type Selection
 
@@ -47,7 +47,8 @@ digraph when_to_use {
 - Fresh subagent per task (no context pollution)
 - Two-stage review after each task: spec compliance first, then code quality
 - Faster iteration (no human-in-loop between tasks)
-- Complexity triage routes are genuinely simple work through a lightweight fast path
+- Independent tasks dispatched in parallel using worktrees for isolation
+- Complexity triage routes genuinely simple work through a lightweight fast path
 
 ## Complexity Triage
 
@@ -63,14 +64,14 @@ The danger is that the fast path becomes an escape hatch from rigour. To prevent
 
 **ALL** the following must be true for the fast path. A single failure means a full path, no exceptions.
 
-| # | Criterion                    | Definition                                                                             | Fails if                                                                                                    |
-|---|------------------------------|----------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------|
-| 1 | **Uniform change type**      | Every change is the same kind of edit applied across locations                         | Changes mix different concerns (e.g., docs + feature code, config + new logic)                              |
-| 2 | **No new logic**             | Zero new functions, classes, conditionals, loops, error handling, or business rules    | Any new control flow or callable unit is introduced                                                         |
-| 3 | **No new interfaces**        | No new exports, API endpoints, contracts, events, or public surface area               | Any new public-facing surface is created                                                                    |
-| 4 | **Deterministic from spec**  | The correct change at each location is fully specified with no room for interpretation | Any change requires a design decision, judgment call, or contextual understanding beyond the immediate edit |
-| 5 | **Independently verifiable** | Each change can be verified by reading it in isolation                                 | Correctness of one change depends on another change in a different file                                     |
-| 6 | **Small total delta**        | Under ~50 lines of meaningful content change across all files                          | More than ~50 lines of substantive change                                                                   |
+| #   | Criterion                    | Definition                                                                             | Fails if                                                                                                    |
+| --- | ---------------------------- | -------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| 1   | **Uniform change type**      | Every change is the same kind of edit applied across locations                         | Changes mix different concerns (e.g., docs + feature code, config + new logic)                              |
+| 2   | **No new logic**             | Zero new functions, classes, conditionals, loops, error handling, or business rules    | Any new control flow or callable unit is introduced                                                         |
+| 3   | **No new interfaces**        | No new exports, API endpoints, contracts, events, or public surface area               | Any new public-facing surface is created                                                                    |
+| 4   | **Deterministic from spec**  | The correct change at each location is fully specified with no room for interpretation | Any change requires a design decision, judgment call, or contextual understanding beyond the immediate edit |
+| 5   | **Independently verifiable** | Each change can be verified by reading it in isolation                                 | Correctness of one change depends on another change in a different file                                     |
+| 6   | **Small total delta**        | Under ~50 lines of meaningful content change across all files                          | More than ~50 lines of substantive change                                                                   |
 
 ### Presenting the Evidence
 
@@ -186,7 +187,7 @@ Each task should be a self-contained unit of work that produces working, testabl
 
 Within each task, steps should follow TDD: write the failing test, run it, implement the minimal code, run tests, commit. This level of detail is communicated to the implementer subagent, not tracked by the controller.
 
-### Task Ordering
+### Task Ordering and Dependency Tiers
 
 Order tasks to respect dependencies:
 
@@ -194,6 +195,16 @@ Order tasks to respect dependencies:
 2. Core features next
 3. Integration after dependencies
 4. Polish/cleanup last
+
+After defining tasks with their dependencies and file lists, group them into dependency tiers for parallel execution:
+
+- **Tier 0**: Tasks with no dependencies (can start immediately)
+- **Tier 1**: Tasks that depend only on tier 0 tasks
+- **Tier N**: Tasks that depend only on tasks in tiers < N
+
+Within a tier, check for file overlap. Two tasks that touch any of the same files cannot run in parallel even if they have no explicit dependency. Move one to the next tier or mark them for sequential execution within the tier.
+
+A tier with a single task runs normally without worktree overhead. A tier with multiple non-overlapping tasks dispatches them in parallel using worktrees for isolation. If all tasks form a linear chain (each depends on the previous), every tier has one task and execution is identical to sequential.
 
 ### Output
 
@@ -204,52 +215,92 @@ The decomposition produces a {{TASK_TRACKER_TOOL}} with all tasks. Each task ent
 - Files to create or modify (exact paths)
 - Acceptance criteria
 - Dependencies on other tasks
+- Dependency tier (computed from dependencies and file overlap)
 - Scene-setting context (where this fits in the overall design)
 
 ## The Process (Full Path)
 
+Execute tasks tier by tier. Within each tier, dispatch independent tasks in parallel using worktrees for isolation. Each task follows the same review pipeline regardless of whether it runs alone or in parallel.
+
+### Tier Execution
+
 ```dot
-digraph process {
+digraph tier_execution {
     rankdir=TB;
 
-    subgraph cluster_per_task {
-        label="Per Task";
-        "Select specialised subagent type\n(from task annotation)" [shape=box, style=bold];
-        "Dispatch implementer subagent (./implementer-prompt.md)" [shape=box];
-        "Implementer subagent asks questions?" [shape=diamond];
-        "Answer questions, provide context" [shape=box];
-        "Implementer subagent implements, tests, commits, self-reviews" [shape=box];
-        "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)" [shape=box];
-        "Spec reviewer subagent confirms code matches spec?" [shape=diamond];
-        "Implementer subagent fixes spec gaps" [shape=box];
-        "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" [shape=box];
-        "Code quality reviewer subagent approves?" [shape=diamond];
-        "Implementer subagent fixes quality issues" [shape=box];
-        "Mark task complete in {{TASK_TRACKER_TOOL}}" [shape=box];
-    }
+    "Decompose into tasks with dependency tiers,\ncreate {{TASK_TRACKER_TOOL}}" [shape=box];
+    "Start next tier" [shape=box, style=bold];
+    "Tier has multiple tasks?" [shape=diamond];
+    "Run per-task pipeline directly\n(no worktree)" [shape=box];
+    "Dispatch all implementers in parallel\n(worktree isolation, run_in_background)" [shape=box];
+    "As each completes:\nmerge branch, run full per-task pipeline\n(spec review + quality review)" [shape=box];
+    "Tier completion gate:\nevery task has both reviews PASS" [shape=box, style=bold];
+    "More tiers?" [shape=diamond];
+    "Dispatch final code reviewer\nfor entire implementation" [shape=box];
 
-    "Decompose design into tasks, map files, select subagent types, create {{TASK_TRACKER_TOOL}}" [shape=box];
-    "More tasks remain?" [shape=diamond];
-    "Dispatch final code reviewer subagent for entire implementation" [shape=box];
+    "Decompose into tasks with dependency tiers,\ncreate {{TASK_TRACKER_TOOL}}" -> "Start next tier";
+    "Start next tier" -> "Tier has multiple tasks?";
+    "Tier has multiple tasks?" -> "Run per-task pipeline directly\n(no worktree)" [label="single task"];
+    "Tier has multiple tasks?" -> "Dispatch all implementers in parallel\n(worktree isolation, run_in_background)" [label="multiple tasks"];
+    "Dispatch all implementers in parallel\n(worktree isolation, run_in_background)" -> "As each completes:\nmerge branch, run full per-task pipeline\n(spec review + quality review)";
+    "As each completes:\nmerge branch, run full per-task pipeline\n(spec review + quality review)" -> "Tier completion gate:\nevery task has both reviews PASS";
+    "Run per-task pipeline directly\n(no worktree)" -> "Tier completion gate:\nevery task has both reviews PASS";
+    "Tier completion gate:\nevery task has both reviews PASS" -> "More tiers?";
+    "More tiers?" -> "Start next tier" [label="yes"];
+    "More tiers?" -> "Dispatch final code reviewer\nfor entire implementation" [label="no"];
+}
+```
 
-    "Decompose design into tasks, map files, select subagent types, create {{TASK_TRACKER_TOOL}}" -> "Select specialised subagent type\n(from task annotation)";
-    "Select specialised subagent type\n(from task annotation)" -> "Dispatch implementer subagent (./implementer-prompt.md)";
-    "Dispatch implementer subagent (./implementer-prompt.md)" -> "Implementer subagent asks questions?";
+### Parallel Dispatch
+
+When a tier has multiple tasks:
+
+1. Dispatch each implementer with `isolation: "worktree"` and `run_in_background: true`. Name each agent after its task for tracking.
+2. As each implementer completes, its worktree branch and path are returned. Merge the branch to main and begin the **full per-task review pipeline** for that task (spec review, then quality review, with fix loops as needed).
+3. Reviews for different tasks overlap naturally as implementers finish at different times.
+4. If a worktree merge produces conflicts, the dependency analysis missed a file overlap. Resolve the conflicts before continuing that task's review pipeline.
+
+### Tier Completion Gate
+
+Do NOT proceed to the next tier until every task in the current tier has completed its full per-task review pipeline (spec review PASS and quality review PASS). Before starting the next tier, verify each task in the {{TASK_TRACKER_TOOL}} shows both reviews passed.
+
+This gate exists because parallel execution creates cognitive load. When managing multiple completing tasks, the controller must juggle merge, spec review, fix loops, quality review, and fix loops for each task. Without an explicit checkpoint, steps get dropped and tasks graduate to "complete" with only an implementation and no review.
+
+### Per-Task Pipeline
+
+Each task follows this pipeline, whether dispatched alone or as part of a parallel tier:
+
+```dot
+digraph per_task_pipeline {
+    rankdir=TB;
+
+    "Select specialised subagent type\n(from task annotation)" [shape=box, style=bold];
+    "Dispatch implementer subagent\n(./implementer-prompt.md)" [shape=box];
+    "Implementer subagent asks questions?" [shape=diamond];
+    "Answer questions, provide context" [shape=box];
+    "Implementer subagent implements,\ntests, commits, self-reviews" [shape=box];
+    "Dispatch spec reviewer subagent\n(./spec-reviewer-prompt.md)" [shape=box];
+    "Spec reviewer confirms code matches spec?" [shape=diamond];
+    "Implementer subagent fixes spec gaps" [shape=box];
+    "Dispatch code quality reviewer subagent\n(./code-quality-reviewer-prompt.md)" [shape=box];
+    "Code quality reviewer approves?" [shape=diamond];
+    "Implementer subagent fixes quality issues" [shape=box];
+    "Mark task complete in {{TASK_TRACKER_TOOL}}" [style=bold];
+
+    "Select specialised subagent type\n(from task annotation)" -> "Dispatch implementer subagent\n(./implementer-prompt.md)";
+    "Dispatch implementer subagent\n(./implementer-prompt.md)" -> "Implementer subagent asks questions?";
     "Implementer subagent asks questions?" -> "Answer questions, provide context" [label="yes"];
-    "Answer questions, provide context" -> "Dispatch implementer subagent (./implementer-prompt.md)";
-    "Implementer subagent asks questions?" -> "Implementer subagent implements, tests, commits, self-reviews" [label="no"];
-    "Implementer subagent implements, tests, commits, self-reviews" -> "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)";
-    "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)" -> "Spec reviewer subagent confirms code matches spec?";
-    "Spec reviewer subagent confirms code matches spec?" -> "Implementer subagent fixes spec gaps" [label="no"];
-    "Implementer subagent fixes spec gaps" -> "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)" [label="re-review"];
-    "Spec reviewer subagent confirms code matches spec?" -> "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" [label="yes"];
-    "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" -> "Code quality reviewer subagent approves?";
-    "Code quality reviewer subagent approves?" -> "Implementer subagent fixes quality issues" [label="no"];
-    "Implementer subagent fixes quality issues" -> "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" [label="re-review"];
-    "Code quality reviewer subagent approves?" -> "Mark task complete in {{TASK_TRACKER_TOOL}}" [label="yes"];
-    "Mark task complete in {{TASK_TRACKER_TOOL}}" -> "More tasks remain?";
-    "More tasks remain?" -> "Select specialised subagent type\n(from task annotation)" [label="yes"];
-    "More tasks remain?" -> "Dispatch final code reviewer subagent for entire implementation" [label="no"];
+    "Answer questions, provide context" -> "Dispatch implementer subagent\n(./implementer-prompt.md)";
+    "Implementer subagent asks questions?" -> "Implementer subagent implements,\ntests, commits, self-reviews" [label="no"];
+    "Implementer subagent implements,\ntests, commits, self-reviews" -> "Dispatch spec reviewer subagent\n(./spec-reviewer-prompt.md)";
+    "Dispatch spec reviewer subagent\n(./spec-reviewer-prompt.md)" -> "Spec reviewer confirms code matches spec?";
+    "Spec reviewer confirms code matches spec?" -> "Implementer subagent fixes spec gaps" [label="no"];
+    "Implementer subagent fixes spec gaps" -> "Dispatch spec reviewer subagent\n(./spec-reviewer-prompt.md)" [label="re-review"];
+    "Spec reviewer confirms code matches spec?" -> "Dispatch code quality reviewer subagent\n(./code-quality-reviewer-prompt.md)" [label="yes"];
+    "Dispatch code quality reviewer subagent\n(./code-quality-reviewer-prompt.md)" -> "Code quality reviewer approves?";
+    "Code quality reviewer approves?" -> "Implementer subagent fixes quality issues" [label="no"];
+    "Implementer subagent fixes quality issues" -> "Dispatch code quality reviewer subagent\n(./code-quality-reviewer-prompt.md)" [label="re-review"];
+    "Code quality reviewer approves?" -> "Mark task complete in {{TASK_TRACKER_TOOL}}" [label="yes"];
 }
 ```
 
@@ -285,6 +336,8 @@ Implementer subagents report one of four statuses. Handle each appropriately:
 4. If the plan itself is wrong, escalate to the human
 
 **Never** ignore an escalation or force the same model to retry without changes. If the implementer said it's stuck, something needs to change.
+
+**Parallel dispatch note:** When multiple implementers run concurrently, each reports its status independently. A NEEDS_CONTEXT or BLOCKED from one does not block the others. Answer the question or address the blocker for that specific task while the others continue.
 
 ## Prompt Templates
 
@@ -335,8 +388,11 @@ Done!
 ```
 You: I'm using Subagent-Driven Development to implement this design.
 
-[Decompose design into tasks: map file structure, define 5 tasks with acceptance criteria]
+[Decompose design into tasks: map file structure, define 5 tasks with acceptance criteria, assign dependency tiers]
 [Create {{TASK_TRACKER_TOOL}} with all tasks]
+[Tier 0: Tasks 1, 2 (independent, no shared files). Tier 1: Tasks 3-5]
+
+Tier 0 - dispatching Tasks 1 and 2 in parallel (worktree isolation)
 
 Task 1: Hook installation script
 
@@ -361,7 +417,7 @@ Code reviewer: Strengths: Good test coverage, clean. Issues: None. Approved.
 
 [Mark Task 1 complete]
 
-Task 2: Recovery modes
+Task 2: Recovery modes (was dispatched in parallel with Task 1)
 
 [Dispatch implementation subagent with full task text + context]
 
@@ -393,10 +449,13 @@ Implementer: Extracted PROGRESS_INTERVAL constant
 Code reviewer: [PASS] Approved
 
 [Mark Task 2 complete]
+[Tier 0 complete - merge worktree branches to main]
+
+Tier 1 - Tasks 3-5 (sequential within tier due to dependencies)
 
 ...
 
-[After all tasks]
+[After all tiers]
 [Dispatch final code-reviewer]
 Final reviewer: All requirements met, ready to merge
 
@@ -408,7 +467,7 @@ Done!
 **vs. Manual execution:**
 - Subagents follow TDD naturally
 - Fresh context per task (no confusion)
-- Parallel-safe (subagents don't interfere)
+- Independent tasks run in parallel (worktree isolation)
 - Subagent can ask questions (before AND during work)
 
 **Efficiency gains:**
@@ -417,6 +476,7 @@ Done!
 - Design-to-execution in one flow (no intermediate handoff)
 - Subagent gets complete information upfront
 - Questions surfaced before work begins (not after)
+- Parallel implementation within dependency tiers reduces wall-clock time
 
 **Quality gates:**
 - Self-review catches issues before handoff
@@ -436,7 +496,9 @@ Done!
 **Never:**
 - Skip reviews (spec compliance OR code quality)
 - Proceed with unfixed issues
-- Dispatch multiple implementation subagents in parallel (conflicts)
+- Dispatch parallel implementers without worktree isolation (git conflicts)
+- Dispatch parallel implementers for tasks that share files or have dependencies
+- Proceed to the next tier before every task in the current tier has both spec review PASS and quality review PASS (the tier completion gate is not optional)
 - Make a subagent discover context on its own (provide full text instead)
 - Skip scene-setting context (subagent needs to understand where a task fits)
 - Ignore subagent questions (answer before letting them proceed)

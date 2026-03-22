@@ -250,6 +250,10 @@ You **SHOULD** follow an Arrange-Act-Assert pattern:
 
 You **MUST** never commit, push, or perform destructive version control commands without explicit permission from the user.
 
+### 7.2 Co-Authored-By
+
+You **MUST NOT** add `Co-Authored-By` lines, AI attribution lines, or any similar bylines to commit messages. Commit messages should contain only the description of the change.
+
 ---
 
 ## 8. Performance and Optimisation

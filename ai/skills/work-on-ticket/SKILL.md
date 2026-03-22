@@ -24,7 +24,7 @@ digraph when_to_use {
     "Extract design context" [shape=box];
     "Present scope to user" [shape=box];
     "User confirms?" [shape=diamond];
-    "Invoke subagent-driven-development" [shape=doublecircle];
+    "Invoke subagent-driven-development" [style=bold];
     "Adjust scope with user" [shape=box];
 
     "User references a ticket" -> "Detect ticketing system";

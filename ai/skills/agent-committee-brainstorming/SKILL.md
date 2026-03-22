@@ -51,7 +51,7 @@ You MUST create a task (using `{{TASK_TRACKER_TOOL}}`) for each of these items a
 ```dot
 digraph committee_brainstorming {
     rankdir=TB;
-    "Enter plan mode" [shape=box];
+    "Enter plan mode" [shape=doublecircle];
     "Confirm brief with user" [shape=box];
     "Brief correct?" [shape=diamond];
     "Explore project context\n(stay narrow)" [shape=box];
@@ -68,8 +68,8 @@ digraph committee_brainstorming {
     "Review passed?" [shape=diamond];
     "User approves final?" [shape=diamond];
     "What next?" [shape=diamond];
-    "Invoke create-tickets skill" [shape=doublecircle];
-    "Invoke subagent-driven-development skill" [shape=doublecircle];
+    "Invoke create-tickets skill" [style=bold];
+    "Invoke subagent-driven-development skill" [style=bold];
 
     "Enter plan mode" -> "Confirm brief with user";
     "Confirm brief with user" -> "Brief correct?";
@@ -267,7 +267,7 @@ The reviewer checks for:
 
 **Process:**
 
-1. Dispatch design-reviewer subagent using `{{DISPATCH_AGENT_TOOL}}` (see design-reviewer-prompt.md)
+1. Dispatch design-reviewer subagent using `{{DISPATCH_AGENT_TOOL}}` (see `../brainstorming/design-reviewer-prompt.md`)
 2. If issues are found: fix the design summary and re-dispatch
 3. Repeat until approved (max three iterations, then surface to human for guidance)
 
