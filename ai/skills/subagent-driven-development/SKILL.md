@@ -256,13 +256,23 @@ digraph tier_execution {
 When a tier has multiple tasks:
 
 1. Dispatch each implementer with `isolation: "worktree"` and `run_in_background: true`. Name each agent after its task for tracking.
-2. As each implementer completes, its worktree branch and path are returned. Merge the branch to main and begin the **full per-task review pipeline** for that task (spec review, then quality review, with fix loops as needed).
-3. Reviews for different tasks overlap naturally as implementers finish at different times.
+2. **As each implementer completes, immediately start its review pipeline.** Do not wait for other implementers to finish. Merge the worktree branch to main and begin the full per-task review pipeline for that task (spec review, then quality review, with fix loops as needed).
+3. You will be managing review pipelines for completed tasks while still waiting for other implementers. This is expected and intended. Process each completion as it arrives rather than batching them.
 4. If a worktree merge produces conflicts, the dependency analysis missed a file overlap. Resolve the conflicts before continuing that task's review pipeline.
 
 ### Worktree Lifecycle
 
 When dispatching implementers with `isolation: "worktree"`, the Agent tool creates a temporary git worktree on a fresh branch. Understanding the full lifecycle prevents lost work and stale branches.
+
+**Responsibilities:**
+
+| Actor | Responsibility |
+|---|---|
+| Agent tool | Creates worktree and branch at dispatch |
+| Implementer | Commits all changes before reporting back |
+| Controller | Merges branch, removes worktree, deletes branch, starts review pipeline |
+
+The implementer never merges, pushes, or cleans up. The controller never commits implementation code. These boundaries are strict.
 
 **Dispatch:**
 1. Set `isolation: "worktree"` and `run_in_background: true` on the Agent call
@@ -270,18 +280,23 @@ When dispatching implementers with `isolation: "worktree"`, the Agent tool creat
 3. The Agent tool creates a worktree and branch automatically
 
 **On completion:**
-1. The agent result includes the worktree branch name and path
-2. Merge the branch into the current working branch immediately:
+
+The agent result includes the worktree branch name and path. Run these steps in order:
+
+1. Merge the branch into the current working branch:
    ```
    git merge <branch-name> --no-edit
    ```
-3. If the merge conflicts, the dependency analysis missed a file overlap. Resolve conflicts before continuing that task's review pipeline
-4. Delete the merged branch to keep the repository tidy:
+2. If the merge conflicts, the dependency analysis missed a file overlap. Resolve conflicts before continuing that task's review pipeline
+3. Remove the worktree directory if it still exists. The Agent tool sometimes cleans this up automatically, sometimes does not, so always attempt removal defensively:
+   ```
+   git worktree remove <worktree-path> 2>/dev/null || true
+   ```
+4. Delete the merged branch:
    ```
    git branch -d <branch-name>
    ```
-5. Verify the merge landed cleanly by checking `git status` and running tests if appropriate
-6. Check for root-owned files left behind by the worktree subagent:
+5. Check for root-owned files left behind by the worktree subagent:
    ```
    find . -user root -not -path './.git/*' 2>/dev/null
    ```
@@ -289,6 +304,9 @@ When dispatching implementers with `isolation: "worktree"`, the Agent tool creat
    ```
    sudo chown -R $(whoami) <affected-paths>
    ```
+6. Verify the merge landed cleanly by checking `git status` and running tests if appropriate
+
+Steps 3 and 4 must happen in that order. `git branch -d` refuses to delete a branch that is still checked out in a worktree.
 
 **Review and fix loops after merge:**
 - All reviews (spec compliance, code quality) run against the merged code on the main tree
@@ -296,12 +314,14 @@ When dispatching implementers with `isolation: "worktree"`, the Agent tool creat
 - The fix subagent commits its fixes on the main tree
 
 **If an implementer reports without committing:**
-- The worktree is cleaned up and the changes are lost
+- The changes exist only as unstaged or staged modifications in the worktree. When the worktree is removed, those changes are lost.
 - The implementer prompt instructs subagents to commit all work, but if this happens, re-dispatch the implementer with the same task
 
 ### Tier Completion Gate
 
 Do NOT proceed to the next tier until every task in the current tier has completed its full per-task review pipeline (spec review PASS and quality review PASS). Before starting the next tier, verify each task in the {{TASK_TRACKER_TOOL}} shows both reviews passed.
+
+Within a tier, process reviews incrementally. When the first implementer finishes, start its review pipeline immediately. When the second finishes, start its review pipeline even if the first is still in a fix loop. Do not batch completions.
 
 This gate exists because parallel execution creates cognitive load. When managing multiple completing tasks, the controller must juggle merge, spec review, fix loops, quality review, and fix loops for each task. Without an explicit checkpoint, steps get dropped and tasks graduate to "complete" with only an implementation and no review.
 
@@ -537,6 +557,7 @@ Done!
 - Proceed with unfixed issues
 - Dispatch parallel implementers without worktree isolation (git conflicts)
 - Dispatch parallel implementers for tasks that share files or have dependencies
+- Wait for all implementers to finish before starting reviews (process each completion immediately as it arrives, start its review pipeline straight away)
 - Proceed to review before merging the worktree branch back to the main tree
 - Leave worktree branches un-merged or un-deleted after task completion (branch litter)
 - Dispatch fix subagents back into a worktree that has already been cleaned up (fix on the main tree instead)

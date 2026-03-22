@@ -14,7 +14,6 @@ ZSH_CONFIG_DIR="$HOME/.config/zsh"
 
 eval "$(starship init zsh)"
 
-[ -f "$ZSH_CONFIG_DIR/zoxide.zsh" ] && source "$ZSH_CONFIG_DIR/zoxide.zsh"
 [ -f "$ZSH_CONFIG_DIR/opencode.zsh" ] && source "$ZSH_CONFIG_DIR/opencode.zsh"
 [ -f "$ZSH_CONFIG_DIR/lazy.zsh" ] && source "$ZSH_CONFIG_DIR/lazy.zsh"
 
@@ -23,4 +22,6 @@ export PATH="vendor/bin:$HOME/.local/bin:$PATH"
 # Added by LM Studio CLI (lms)
 export PATH="$PATH:/Users/phil.bennett/.lmstudio/bin"
 # End of LM Studio CLI section
+
+[ -f "$ZSH_CONFIG_DIR/zoxide.zsh" ] && source "$ZSH_CONFIG_DIR/zoxide.zsh"
 
