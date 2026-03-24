@@ -23,5 +23,7 @@ export PATH="vendor/bin:$HOME/.local/bin:$PATH"
 export PATH="$PATH:/Users/phil.bennett/.lmstudio/bin"
 # End of LM Studio CLI section
 
+export _ZO_DOCTOR=0
+
 [ -f "$ZSH_CONFIG_DIR/zoxide.zsh" ] && source "$ZSH_CONFIG_DIR/zoxide.zsh"
 
