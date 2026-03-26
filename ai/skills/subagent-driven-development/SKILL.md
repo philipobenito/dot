@@ -57,6 +57,15 @@ digraph when_to_use {
 - User checkpoint after each task (review changes, decide whether to commit)
 - Subagent can ask questions (before AND during work)
 
+## Commit Preference
+
+Before starting any work (before complexity triage), the orchestrator **must** ask the user how they want commits handled using `{{ASK_USER_QUESTION_TOOL}}`:
+
+- **Auto-commit after each task** - The orchestrator commits automatically after each task passes review, without prompting per task. The user still sees a summary of changes but is not asked whether to commit.
+- **Ask me each time** - The orchestrator pauses after each task and asks (via `{{ASK_USER_QUESTION_TOOL}}`) whether to commit.
+
+This question is asked once at the start. The choice applies to all tasks in the session (both fast path and full path). If the user chose auto-commit, the per-task checkpoint still presents a summary of changes but skips the commit question and commits immediately.
+
 ## Complexity Triage
 
 Before decomposing work into tasks, assess whether the full process is warranted. **The default is always the full path.** The fast path is an optimisation for genuinely mechanical work where the per-task overhead adds no quality benefit.
@@ -133,7 +142,7 @@ When triage classifies work as SIMPLE, the process collapses to two subagent dis
 
 2. **Single combined review**: One reviewer checks spec compliance and code quality in a single pass (`./fast-path-reviewer-prompt.md`). This is not a weaker review. It covers everything the full-path review covers, combined because the small scope makes separation unnecessary overhead. Use `model: "haiku"` for the reviewer.
 
-3. **User checkpoint**: Present the changes to the user for review. Ask whether to commit.
+3. **User checkpoint**: Present the changes to the user for review. If the user chose "ask me each time", use `{{ASK_USER_QUESTION_TOOL}}` to ask whether to commit. If the user chose auto-commit, commit immediately after presenting the summary.
 
 If the reviewer finds issues, the implementer fixes them and the reviewer reviews again. Same fix-and-re-review loop as the full path.
 
@@ -154,7 +163,7 @@ digraph fast_path {
     "Reviewer result?" [shape=diamond];
     "Implementer fixes issues" [shape=box];
     "Switch to full path\n(re-decompose)" [shape=box];
-    "User checkpoint:\npresent changes, ask to commit" [shape=box, style=bold];
+    "User checkpoint:\npresent changes, commit or ask" [shape=box, style=bold];
 
     "Triage: SIMPLE" -> "Dispatch implementer\n(all changes as single batch, model: haiku)";
     "Dispatch implementer\n(all changes as single batch, model: haiku)" -> "Implementer asks questions?";
@@ -163,7 +172,7 @@ digraph fast_path {
     "Implementer asks questions?" -> "Implementer implements, tests, self-reviews" [label="no"];
     "Implementer implements, tests, self-reviews" -> "Dispatch combined reviewer\n(./fast-path-reviewer-prompt.md, model: haiku)";
     "Dispatch combined reviewer\n(./fast-path-reviewer-prompt.md, model: haiku)" -> "Reviewer result?";
-    "Reviewer result?" -> "User checkpoint:\npresent changes, ask to commit" [label="PASS"];
+    "Reviewer result?" -> "User checkpoint:\npresent changes, commit or ask" [label="PASS"];
     "Reviewer result?" -> "Implementer fixes issues" [label="FAIL"];
     "Reviewer result?" -> "Switch to full path\n(re-decompose)" [label="TRIAGE_INVALID"];
     "Implementer fixes issues" -> "Dispatch combined reviewer\n(./fast-path-reviewer-prompt.md, model: haiku)" [label="re-review"];
@@ -234,7 +243,7 @@ digraph per_task_pipeline {
     "Dispatch reviewer subagent\n(./reviewer-prompt.md)" [shape=box];
     "Reviewer approves?" [shape=diamond];
     "Implementer subagent fixes issues" [shape=box];
-    "User checkpoint:\npresent changes, ask to commit" [shape=box, style=bold];
+    "User checkpoint:\npresent changes, commit or ask" [shape=box, style=bold];
     "Mark task complete in {{TASK_TRACKER_TOOL}}" [style=bold];
 
     "Select specialised subagent type\nand model (default: haiku)" -> "Dispatch implementer subagent\n(./implementer-prompt.md)";
@@ -246,22 +255,30 @@ digraph per_task_pipeline {
     "Dispatch reviewer subagent\n(./reviewer-prompt.md)" -> "Reviewer approves?";
     "Reviewer approves?" -> "Implementer subagent fixes issues" [label="no"];
     "Implementer subagent fixes issues" -> "Dispatch reviewer subagent\n(./reviewer-prompt.md)" [label="re-review"];
-    "Reviewer approves?" -> "User checkpoint:\npresent changes, ask to commit" [label="yes"];
-    "User checkpoint:\npresent changes, ask to commit" -> "Mark task complete in {{TASK_TRACKER_TOOL}}";
+    "Reviewer approves?" -> "User checkpoint:\npresent changes, commit or ask" [label="yes"];
+    "User checkpoint:\npresent changes, commit or ask" -> "Mark task complete in {{TASK_TRACKER_TOOL}}";
 }
 ```
 
 ### User Checkpoint
 
-After a task's review passes, the orchestrator **must** pause and present the work to the user:
+After a task's review passes, the orchestrator **must** present the work to the user:
 
 1. Summarise what was implemented and what the reviewer found
 2. Show a `git diff` of the uncommitted changes
-3. Ask the user: "Ready to commit this, or would you like to adjust anything first?"
+
+**If the user chose "ask me each time":**
+
+3. Use `{{ASK_USER_QUESTION_TOOL}}` to ask whether to commit (options: "Commit", "Adjust first", "Skip commit")
 4. Only commit when the user confirms. The user may want to review, tweak, or reject the changes.
 5. After committing (or if the user defers the commit), proceed to the next task
 
-This checkpoint exists because the user owns the repository. Automated commits without review remove the user's ability to catch issues that automated review missed, or to adjust the approach before it compounds across subsequent tasks.
+**If the user chose "auto-commit":**
+
+3. Commit immediately after presenting the summary
+4. Proceed to the next task
+
+The checkpoint summary exists regardless of commit preference because the user owns the repository and should always see what changed. The commit question is the part that is conditional on the upfront preference.
 
 ## Model Selection
 
@@ -314,6 +331,9 @@ Implementer subagents report one of four statuses. Handle each appropriately:
 ```
 You: I'm implementing the design for updating copyright headers across the codebase.
 
+[Ask user via {{ASK_USER_QUESTION_TOOL}}: commit preference]
+User: Auto-commit after each task
+
 Complexity Triage
 
 | # | Criterion | Evidence | Pass |
@@ -341,11 +361,9 @@ Combined reviewer: [PASS] All 8 files correctly updated. Changes match spec exac
 no extra modifications, consistent with surrounding code style.
 
 [Present diff to user]
-Here are the changes - 8 files with updated copyright headers. Ready to commit?
+Here are the changes - 8 files with updated copyright headers.
 
-User: Looks good, commit it.
-
-[Commit changes]
+[Auto-commit: user chose auto-commit at start]
 
 Done!
 ```
@@ -354,6 +372,9 @@ Done!
 
 ```
 You: I'm using Subagent-Driven Development to implement this design.
+
+[Ask user via {{ASK_USER_QUESTION_TOOL}}: commit preference]
+User: Ask me each time
 
 [Decompose design into tasks: map file structure, define 5 tasks with acceptance criteria, order by dependencies]
 [Create {{TASK_TRACKER_TOOL}} with all tasks, each annotated with subagent type and model: haiku]
@@ -377,9 +398,9 @@ Reviewer: [PASS] Spec compliant, code quality good. Clean implementation, good t
 
 [Present diff to user]
 Task 1 complete: install-hook command with --force flag. 5 tests passing.
-Here's the diff - ready to commit?
 
-User: Yes, commit.
+[Ask via {{ASK_USER_QUESTION_TOOL}}: Commit / Adjust first / Skip commit]
+User: Commit
 
 [Commit, mark Task 1 complete]
 
@@ -407,9 +428,9 @@ Reviewer: [PASS] Spec compliant now, quality good.
 [Present diff to user]
 Task 2 complete: verify/repair modes with progress reporting. 8 tests passing.
 The reviewer caught a missing requirement and an extra flag on first pass, both fixed.
-Here's the diff - ready to commit?
 
-User: Yes.
+[Ask via {{ASK_USER_QUESTION_TOOL}}: Commit / Adjust first / Skip commit]
+User: Commit
 
 [Commit, mark Task 2 complete]
 
@@ -456,7 +477,7 @@ Done!
 - Let subagents commit (the orchestrator owns all git operations)
 - Skip reviews
 - Proceed with unfixed issues
-- Commit without user approval (always checkpoint first)
+- Commit without asking the upfront commit preference question first
 - Use expensive models without justification (default to `haiku`)
 - Make a subagent discover context on its own (provide full text instead)
 - Skip scene-setting context (subagent needs to understand where a task fits)
