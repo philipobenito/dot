@@ -1,15 +1,23 @@
 ---
 name: subagent-driven-development
-description: Use when implementing an approved design or plan by decomposing it into tasks and executing each with a fresh subagent plus two-stage review. Dispatches independent tasks in parallel using worktrees for isolation. Includes complexity triage that routes genuinely simple mechanical work through a lightweight fast path (single implementation + single combined review) while preserving the full per-task decomposition and two-stage review for complex work
+description: Use when implementing an approved design or plan by decomposing it into tasks and executing each with a fresh subagent plus combined review. Runs tasks sequentially. Includes complexity triage that routes genuinely simple mechanical work through a lightweight fast path (single implementation + single review) while preserving the full per-task decomposition and review for complex work. The orchestrator checkpoints with the user after each task for review and commit approval.
 ---
 
 # Subagent-Driven Development
 
-Implement an approved design by first triaging its complexity, then taking the appropriate path. Simple mechanical work (evidenced by strict binary criteria) gets a fast path: single implementation dispatch, single combined review. Complex work gets the full process: decompose into dependency-tiered tasks, dispatch independent tasks in parallel using worktrees, fresh subagent per task, two-stage review per task.
+Implement an approved design by first triaging its complexity, then taking the appropriate path. Simple mechanical work (evidenced by strict binary criteria) gets a fast path: single implementation dispatch, single combined review. Complex work gets the full process: decompose into ordered tasks, execute sequentially with a fresh subagent per task, combined review per task, user checkpoint after each task.
 
-**Why subagents:** You delegate tasks to specialised agents with an isolated context. By precisely crafting their instructions and context, you ensure they stay focused and succeed at their task. They should never inherit your session's context or history — you construct exactly what they need. This also preserves your own context for coordination work.
+**Why subagents:** You delegate tasks to specialised agents with an isolated context. By precisely crafting their instructions and context, you ensure they stay focused and succeed at their task. They should never inherit your session's context or history - you construct exactly what they need. This also preserves your own context for coordination work.
 
-**Core principle:** Triage first, then either fast path (prove it's simple) or full path (decompose into dependency tiers, dispatch independent tasks in parallel, two-stage review per task) = right-sized process for the work
+**Core principle:** Triage first, then either fast path (prove it's simple) or full path (decompose into ordered tasks, execute sequentially, combined review per task, user checkpoint) = right-sized process for the work
+
+## Strict Rules
+
+**Subagents MUST NOT commit.** The orchestrator owns all git operations. Subagents implement, test, and report back. The orchestrator presents changes to the user, who decides when to commit. This is non-negotiable.
+
+**Worktrees are forbidden.** All work happens in the main working directory. Tasks run sequentially. Do not use `isolation: "worktree"` on any agent dispatch.
+
+**Use the cheapest model that works.** Most implementation tasks are mechanical grunt work when the plan is well-specified. Default to `model: "haiku"` for implementers. Only escalate to a more capable model when the task genuinely requires it. Reviews should also use cheap models unless the code is architecturally complex. Save expensive models for coordination and judgment calls. See the Model Selection section for details.
 
 ## Subagent Type Selection
 
@@ -22,7 +30,7 @@ Before dispatching any subagent, check the available subagent types and select t
 3. If a specialised type matches, use it via the `subagent_type` parameter on `{{DISPATCH_AGENT_TOOL}}`
 4. Fall back to `general-purpose` only when no specialised type fits
 
-This applies to implementers, spec reviewers, and code quality reviewers alike. A TypeScript task should be implemented by a TypeScript specialist and reviewed by a code reviewer specialist, not by three general-purpose agents.
+This applies to implementers and reviewers alike. A TypeScript task should be implemented by a TypeScript specialist and reviewed by a code reviewer specialist, not by two general-purpose agents.
 
 **During task decomposition**, annotate each task with the recommended subagent type. This avoids re-evaluating the selection at dispatch time and makes the choice explicit and reviewable.
 
@@ -45,10 +53,9 @@ digraph when_to_use {
 **Key advantages:**
 - Handles both task decomposition and execution in one flow
 - Fresh subagent per task (no context pollution)
-- Two-stage review after each task: spec compliance first, then code quality
-- Faster iteration (no human-in-loop between tasks)
-- Independent tasks dispatched in parallel using worktrees for isolation
-- Complexity triage routes genuinely simple work through a lightweight fast path
+- Combined review after each task: spec compliance and code quality in one pass
+- User checkpoint after each task (review changes, decide whether to commit)
+- Subagent can ask questions (before AND during work)
 
 ## Complexity Triage
 
@@ -56,7 +63,7 @@ Before decomposing work into tasks, assess whether the full process is warranted
 
 ### Why This Matters
 
-The full process (per-task decomposition, each with two-stage review) is transformative for complex work. But for mechanical changes, like updating a version string across 8 files or fixing the same wording in 6 config files, the full process spends more tokens on coordination than on the actual work. Those files do not need 8 implementer dispatches, 8 spec reviews, and 8 quality reviews. They need one pass and one check.
+The full process (per-task decomposition, each with combined review) is transformative for complex work. But for mechanical changes, like updating a version string across 8 files or fixing the same wording in 6 config files, the full process spends more tokens on coordination than on the actual work. Those files do not need 8 implementer dispatches and 8 reviews. They need one pass and one check.
 
 The danger is that the fast path becomes an escape hatch from rigour. To prevent this, the triage uses strict binary criteria with mandatory evidence. You must prove the work is simple. You cannot assume it.
 
@@ -65,7 +72,7 @@ The danger is that the fast path becomes an escape hatch from rigour. To prevent
 **ALL** the following must be true for the fast path. A single failure means a full path, no exceptions.
 
 | #   | Criterion                    | Definition                                                                             | Fails if                                                                                                    |
-| --- | ---------------------------- | -------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| --- | ---------------------------- | ----------------------------a---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
 | 1   | **Uniform change type**      | Every change is the same kind of edit applied across locations                         | Changes mix different concerns (e.g., docs + feature code, config + new logic)                              |
 | 2   | **No new logic**             | Zero new functions, classes, conditionals, loops, error handling, or business rules    | Any new control flow or callable unit is introduced                                                         |
 | 3   | **No new interfaces**        | No new exports, API endpoints, contracts, events, or public surface area               | Any new public-facing surface is created                                                                    |
@@ -122,13 +129,13 @@ When triage classifies work as SIMPLE, the process collapses to two subagent dis
 
 ### Process
 
-1. **Single implementation dispatch**: One subagent receives all changes as a batch. Use the standard implementer prompt (`./implementer-prompt.md`) with the task description covering the full scope. Select the subagent type as normal.
+1. **Single implementation dispatch**: One subagent receives all changes as a batch. Use the standard implementer prompt (`./implementer-prompt.md`) with the task description covering the full scope. Select the subagent type as normal. Use `model: "haiku"` - if work is simple enough for the fast path, it is simple enough for the cheapest model.
 
-2. **Single combined review**: One reviewer checks spec compliance and code quality in a single pass (`./fast-path-reviewer-prompt.md`). This is not a weaker review. It covers everything the two separate reviews cover, combined because the small scope makes separation unnecessary overhead.
+2. **Single combined review**: One reviewer checks spec compliance and code quality in a single pass (`./fast-path-reviewer-prompt.md`). This is not a weaker review. It covers everything the full-path review covers, combined because the small scope makes separation unnecessary overhead. Use `model: "haiku"` for the reviewer.
 
-3. **One commit** for all changes.
+3. **User checkpoint**: Present the changes to the user for review. Ask whether to commit.
 
-If the reviewer finds issues, the implementer fixes them and the reviewer reviews again. Same fix-and-re-review loop as the full path, with one reviewer instead of two sequential ones.
+If the reviewer finds issues, the implementer fixes them and the reviewer reviews again. Same fix-and-re-review loop as the full path.
 
 If the reviewer reports TRIAGE_INVALID, stop and switch to the full path. Re-decompose the work using the full path process below.
 
@@ -139,27 +146,27 @@ digraph fast_path {
     rankdir=TB;
 
     "Triage: SIMPLE" [shape=box, style=bold];
-    "Dispatch implementer\n(all changes as single batch)" [shape=box];
+    "Dispatch implementer\n(all changes as single batch, model: haiku)" [shape=box];
     "Implementer asks questions?" [shape=diamond];
     "Answer questions, provide context" [shape=box];
-    "Implementer implements, tests, commits, self-reviews" [shape=box];
-    "Dispatch combined reviewer\n(./fast-path-reviewer-prompt.md)" [shape=box];
+    "Implementer implements, tests, self-reviews" [shape=box];
+    "Dispatch combined reviewer\n(./fast-path-reviewer-prompt.md, model: haiku)" [shape=box];
     "Reviewer result?" [shape=diamond];
     "Implementer fixes issues" [shape=box];
     "Switch to full path\n(re-decompose)" [shape=box];
-    "Done" [shape=box, style=bold];
+    "User checkpoint:\npresent changes, ask to commit" [shape=box, style=bold];
 
-    "Triage: SIMPLE" -> "Dispatch implementer\n(all changes as single batch)";
-    "Dispatch implementer\n(all changes as single batch)" -> "Implementer asks questions?";
+    "Triage: SIMPLE" -> "Dispatch implementer\n(all changes as single batch, model: haiku)";
+    "Dispatch implementer\n(all changes as single batch, model: haiku)" -> "Implementer asks questions?";
     "Implementer asks questions?" -> "Answer questions, provide context" [label="yes"];
-    "Answer questions, provide context" -> "Dispatch implementer\n(all changes as single batch)";
-    "Implementer asks questions?" -> "Implementer implements, tests, commits, self-reviews" [label="no"];
-    "Implementer implements, tests, commits, self-reviews" -> "Dispatch combined reviewer\n(./fast-path-reviewer-prompt.md)";
-    "Dispatch combined reviewer\n(./fast-path-reviewer-prompt.md)" -> "Reviewer result?";
-    "Reviewer result?" -> "Done" [label="PASS"];
+    "Answer questions, provide context" -> "Dispatch implementer\n(all changes as single batch, model: haiku)";
+    "Implementer asks questions?" -> "Implementer implements, tests, self-reviews" [label="no"];
+    "Implementer implements, tests, self-reviews" -> "Dispatch combined reviewer\n(./fast-path-reviewer-prompt.md, model: haiku)";
+    "Dispatch combined reviewer\n(./fast-path-reviewer-prompt.md, model: haiku)" -> "Reviewer result?";
+    "Reviewer result?" -> "User checkpoint:\npresent changes, ask to commit" [label="PASS"];
     "Reviewer result?" -> "Implementer fixes issues" [label="FAIL"];
     "Reviewer result?" -> "Switch to full path\n(re-decompose)" [label="TRIAGE_INVALID"];
-    "Implementer fixes issues" -> "Dispatch combined reviewer\n(./fast-path-reviewer-prompt.md)" [label="re-review"];
+    "Implementer fixes issues" -> "Dispatch combined reviewer\n(./fast-path-reviewer-prompt.md, model: haiku)" [label="re-review"];
 }
 ```
 
@@ -183,11 +190,10 @@ Each task should be a self-contained unit of work that produces working, testabl
 - Touches a focused set of files (ideally 1-3)
 - Has clear acceptance criteria derivable from the design
 - Can be verified independently
-- Results in a commit
 
-Within each task, steps should follow TDD: write the failing test, run it, implement the minimal code, run tests, commit. This level of detail is communicated to the implementer subagent, not tracked by the controller.
+Within each task, steps should follow TDD: write the failing test, run it, implement the minimal code, run tests. This level of detail is communicated to the implementer subagent, not tracked by the controller.
 
-### Task Ordering and Dependency Tiers
+### Task Ordering
 
 Order tasks to respect dependencies:
 
@@ -196,15 +202,7 @@ Order tasks to respect dependencies:
 3. Integration after dependencies
 4. Polish/cleanup last
 
-After defining tasks with their dependencies and file lists, group them into dependency tiers for parallel execution:
-
-- **Tier 0**: Tasks with no dependencies (can start immediately)
-- **Tier 1**: Tasks that depend only on tier 0 tasks
-- **Tier N**: Tasks that depend only on tasks in tiers < N
-
-Within a tier, check for file overlap. Two tasks that touch any of the same files cannot run in parallel even if they have no explicit dependency. Move one to the next tier or mark them for sequential execution within the tier.
-
-A tier with a single task runs normally without worktree overhead. A tier with multiple non-overlapping tasks dispatches them in parallel using worktrees for isolation. If all tasks form a linear chain (each depends on the previous), every tier has one task and execution is identical to sequential.
+Tasks execute sequentially in this order. If two tasks have no dependency between them, their relative order does not matter, but they still run one at a time.
 
 ### Output
 
@@ -212,177 +210,84 @@ The decomposition produces a {{TASK_TRACKER_TOOL}} with all tasks. Each task ent
 
 - Task name and description
 - Recommended subagent type (e.g. `typescript-pro`, `python-pro`, `react-specialist`)
+- Recommended model (default `haiku`, escalate only with justification)
 - Files to create or modify (exact paths)
 - Acceptance criteria
 - Dependencies on other tasks
-- Dependency tier (computed from dependencies and file overlap)
 - Scene-setting context (where this fits in the overall design)
 
 ## The Process (Full Path)
 
-Execute tasks tier by tier. Within each tier, dispatch independent tasks in parallel using worktrees for isolation. Each task follows the same review pipeline regardless of whether it runs alone or in parallel.
-
-### Tier Execution
-
-```dot
-digraph tier_execution {
-    rankdir=TB;
-
-    "Decompose into tasks with dependency tiers,\ncreate {{TASK_TRACKER_TOOL}}" [shape=box];
-    "Start next tier" [shape=box, style=bold];
-    "Tier has multiple tasks?" [shape=diamond];
-    "Run per-task pipeline directly\n(no worktree)" [shape=box];
-    "Dispatch all implementers in parallel\n(worktree isolation, run_in_background)" [shape=box];
-    "As each completes:\nmerge branch, run full per-task pipeline\n(spec review + quality review)" [shape=box];
-    "Tier completion gate:\nevery task has both reviews PASS" [shape=box, style=bold];
-    "More tiers?" [shape=diamond];
-    "Dispatch final code reviewer\nfor entire implementation" [shape=box];
-
-    "Decompose into tasks with dependency tiers,\ncreate {{TASK_TRACKER_TOOL}}" -> "Start next tier";
-    "Start next tier" -> "Tier has multiple tasks?";
-    "Tier has multiple tasks?" -> "Run per-task pipeline directly\n(no worktree)" [label="single task"];
-    "Tier has multiple tasks?" -> "Dispatch all implementers in parallel\n(worktree isolation, run_in_background)" [label="multiple tasks"];
-    "Dispatch all implementers in parallel\n(worktree isolation, run_in_background)" -> "As each completes:\nmerge branch, run full per-task pipeline\n(spec review + quality review)";
-    "As each completes:\nmerge branch, run full per-task pipeline\n(spec review + quality review)" -> "Tier completion gate:\nevery task has both reviews PASS";
-    "Run per-task pipeline directly\n(no worktree)" -> "Tier completion gate:\nevery task has both reviews PASS";
-    "Tier completion gate:\nevery task has both reviews PASS" -> "More tiers?";
-    "More tiers?" -> "Start next tier" [label="yes"];
-    "More tiers?" -> "Dispatch final code reviewer\nfor entire implementation" [label="no"];
-}
-```
-
-### Parallel Dispatch
-
-When a tier has multiple tasks:
-
-1. Dispatch each implementer with `isolation: "worktree"` and `run_in_background: true`. Name each agent after its task for tracking.
-2. **As each implementer completes, immediately start its review pipeline.** Do not wait for other implementers to finish. Merge the worktree branch to main and begin the full per-task review pipeline for that task (spec review, then quality review, with fix loops as needed).
-3. You will be managing review pipelines for completed tasks while still waiting for other implementers. This is expected and intended. Process each completion as it arrives rather than batching them.
-4. If a worktree merge produces conflicts, the dependency analysis missed a file overlap. Resolve the conflicts before continuing that task's review pipeline.
-
-### Worktree Lifecycle
-
-When dispatching implementers with `isolation: "worktree"`, the Agent tool creates a temporary git worktree on a fresh branch. Understanding the full lifecycle prevents lost work and stale branches.
-
-**Responsibilities:**
-
-| Actor | Responsibility |
-|---|---|
-| Agent tool | Creates worktree and branch at dispatch |
-| Implementer | Commits all changes before reporting back |
-| Controller | Merges branch, removes worktree, deletes branch, starts review pipeline |
-
-The implementer never merges, pushes, or cleans up. The controller never commits implementation code. These boundaries are strict.
-
-**Dispatch:**
-1. Set `isolation: "worktree"` and `run_in_background: true` on the Agent call
-2. Name the agent after its task for tracking (e.g. `"task-3-auth-middleware"`)
-3. The Agent tool creates a worktree and branch automatically
-
-**On completion:**
-
-The agent result includes the worktree branch name and path. Run these steps in order:
-
-1. Merge the branch into the current working branch:
-   ```
-   git merge <branch-name> --no-edit
-   ```
-2. If the merge conflicts, the dependency analysis missed a file overlap. Resolve conflicts before continuing that task's review pipeline
-3. Remove the worktree directory if it still exists. The Agent tool sometimes cleans this up automatically, sometimes does not, so always attempt removal defensively:
-   ```
-   git worktree remove <worktree-path> 2>/dev/null || true
-   ```
-4. Delete the merged branch:
-   ```
-   git branch -d <branch-name>
-   ```
-5. Check for root-owned files left behind by the worktree subagent:
-   ```
-   find . -user root -not -path './.git/*' 2>/dev/null
-   ```
-   If any are found, fix ownership before continuing:
-   ```
-   sudo chown -R $(whoami) <affected-paths>
-   ```
-6. Verify the merge landed cleanly by checking `git status` and running tests if appropriate
-
-Steps 3 and 4 must happen in that order. `git branch -d` refuses to delete a branch that is still checked out in a worktree.
-
-**Review and fix loops after merge:**
-- All reviews (spec compliance, code quality) run against the merged code on the main tree
-- If a reviewer finds issues, dispatch the fix subagent on the main tree directly (no worktree needed, the task is now sequential)
-- The fix subagent commits its fixes on the main tree
-
-**If an implementer reports without committing:**
-- The changes exist only as unstaged or staged modifications in the worktree. When the worktree is removed, those changes are lost.
-- The implementer prompt instructs subagents to commit all work, but if this happens, re-dispatch the implementer with the same task
-
-### Tier Completion Gate
-
-Do NOT proceed to the next tier until every task in the current tier has completed its full per-task review pipeline (spec review PASS and quality review PASS). Before starting the next tier, verify each task in the {{TASK_TRACKER_TOOL}} shows both reviews passed.
-
-Within a tier, process reviews incrementally. When the first implementer finishes, start its review pipeline immediately. When the second finishes, start its review pipeline even if the first is still in a fix loop. Do not batch completions.
-
-This gate exists because parallel execution creates cognitive load. When managing multiple completing tasks, the controller must juggle merge, spec review, fix loops, quality review, and fix loops for each task. Without an explicit checkpoint, steps get dropped and tasks graduate to "complete" with only an implementation and no review.
+Execute tasks sequentially. Each task follows the same pipeline: implement, review, user checkpoint.
 
 ### Per-Task Pipeline
-
-Each task follows this pipeline, whether dispatched alone or as part of a parallel tier:
 
 ```dot
 digraph per_task_pipeline {
     rankdir=TB;
 
-    "Select specialised subagent type\n(from task annotation)" [shape=box, style=bold];
+    "Select specialised subagent type\nand model (default: haiku)" [shape=box, style=bold];
     "Dispatch implementer subagent\n(./implementer-prompt.md)" [shape=box];
     "Implementer subagent asks questions?" [shape=diamond];
     "Answer questions, provide context" [shape=box];
-    "Implementer subagent implements,\ntests, commits, self-reviews" [shape=box];
-    "Dispatch spec reviewer subagent\n(./spec-reviewer-prompt.md)" [shape=box];
-    "Spec reviewer confirms code matches spec?" [shape=diamond];
-    "Implementer subagent fixes spec gaps" [shape=box];
-    "Dispatch code quality reviewer subagent\n(./code-quality-reviewer-prompt.md)" [shape=box];
-    "Code quality reviewer approves?" [shape=diamond];
-    "Implementer subagent fixes quality issues" [shape=box];
+    "Implementer subagent implements,\ntests, self-reviews" [shape=box];
+    "Dispatch reviewer subagent\n(./reviewer-prompt.md)" [shape=box];
+    "Reviewer approves?" [shape=diamond];
+    "Implementer subagent fixes issues" [shape=box];
+    "User checkpoint:\npresent changes, ask to commit" [shape=box, style=bold];
     "Mark task complete in {{TASK_TRACKER_TOOL}}" [style=bold];
 
-    "Select specialised subagent type\n(from task annotation)" -> "Dispatch implementer subagent\n(./implementer-prompt.md)";
+    "Select specialised subagent type\nand model (default: haiku)" -> "Dispatch implementer subagent\n(./implementer-prompt.md)";
     "Dispatch implementer subagent\n(./implementer-prompt.md)" -> "Implementer subagent asks questions?";
     "Implementer subagent asks questions?" -> "Answer questions, provide context" [label="yes"];
     "Answer questions, provide context" -> "Dispatch implementer subagent\n(./implementer-prompt.md)";
-    "Implementer subagent asks questions?" -> "Implementer subagent implements,\ntests, commits, self-reviews" [label="no"];
-    "Implementer subagent implements,\ntests, commits, self-reviews" -> "Dispatch spec reviewer subagent\n(./spec-reviewer-prompt.md)";
-    "Dispatch spec reviewer subagent\n(./spec-reviewer-prompt.md)" -> "Spec reviewer confirms code matches spec?";
-    "Spec reviewer confirms code matches spec?" -> "Implementer subagent fixes spec gaps" [label="no"];
-    "Implementer subagent fixes spec gaps" -> "Dispatch spec reviewer subagent\n(./spec-reviewer-prompt.md)" [label="re-review"];
-    "Spec reviewer confirms code matches spec?" -> "Dispatch code quality reviewer subagent\n(./code-quality-reviewer-prompt.md)" [label="yes"];
-    "Dispatch code quality reviewer subagent\n(./code-quality-reviewer-prompt.md)" -> "Code quality reviewer approves?";
-    "Code quality reviewer approves?" -> "Implementer subagent fixes quality issues" [label="no"];
-    "Implementer subagent fixes quality issues" -> "Dispatch code quality reviewer subagent\n(./code-quality-reviewer-prompt.md)" [label="re-review"];
-    "Code quality reviewer approves?" -> "Mark task complete in {{TASK_TRACKER_TOOL}}" [label="yes"];
+    "Implementer subagent asks questions?" -> "Implementer subagent implements,\ntests, self-reviews" [label="no"];
+    "Implementer subagent implements,\ntests, self-reviews" -> "Dispatch reviewer subagent\n(./reviewer-prompt.md)";
+    "Dispatch reviewer subagent\n(./reviewer-prompt.md)" -> "Reviewer approves?";
+    "Reviewer approves?" -> "Implementer subagent fixes issues" [label="no"];
+    "Implementer subagent fixes issues" -> "Dispatch reviewer subagent\n(./reviewer-prompt.md)" [label="re-review"];
+    "Reviewer approves?" -> "User checkpoint:\npresent changes, ask to commit" [label="yes"];
+    "User checkpoint:\npresent changes, ask to commit" -> "Mark task complete in {{TASK_TRACKER_TOOL}}";
 }
 ```
 
+### User Checkpoint
+
+After a task's review passes, the orchestrator **must** pause and present the work to the user:
+
+1. Summarise what was implemented and what the reviewer found
+2. Show a `git diff` of the uncommitted changes
+3. Ask the user: "Ready to commit this, or would you like to adjust anything first?"
+4. Only commit when the user confirms. The user may want to review, tweak, or reject the changes.
+5. After committing (or if the user defers the commit), proceed to the next task
+
+This checkpoint exists because the user owns the repository. Automated commits without review remove the user's ability to catch issues that automated review missed, or to adjust the approach before it compounds across subsequent tasks.
+
 ## Model Selection
 
-Use the least powerful model that can handle each role to conserve cost and increase speed.
+Use the cheapest model that can handle each role. This is not a suggestion, it is a cost and speed discipline.
 
-**Mechanical implementation tasks** (isolated functions, clear specs, 1-2 files): use a fast, inexpensive model. Most implementation tasks are mechanical when the plan is well-specified.
+**Default to `model: "haiku"` for all subagent dispatches.** Escalate only when you have specific evidence the task requires more capability.
 
-**Integration and judgment tasks** (multi-file coordination, pattern matching, debugging): use a standard model.
-
-**Architecture, design, and review tasks**: use the most capable available model.
+| Role | Default Model | Escalate to | Escalation trigger |
+|---|---|---|---|
+| Implementer (clear spec, 1-3 files) | `haiku` | `sonnet` | Task failed with haiku, or task requires multi-file integration reasoning |
+| Implementer (integration, judgment) | `sonnet` | inherited | Multi-file coordination, pattern matching, debugging |
+| Reviewer (standard) | `haiku` | `sonnet` | Architecturally complex code requiring deep reasoning |
+| Fix subagent | `haiku` | `sonnet` | Fix requires understanding beyond the immediate issue |
 
 **Task complexity signals:**
-- Touches 1-2 files with a complete spec → inexpensive model
-- Touches multiple files with integration concerns → standard model
-- Requires design judgment or broad codebase understanding → most capable model
+- Touches 1-2 files with a complete spec = `haiku`
+- Touches multiple files with integration concerns = `sonnet`
+- Requires design judgment or broad codebase understanding = inherited (most capable)
+
+**Never pre-escalate.** Start with `haiku`. If it fails or produces poor results, re-dispatch with `sonnet`. The cost of one failed cheap attempt is less than always using expensive models.
 
 ## Handling Implementer Status
 
 Implementer subagents report one of four statuses. Handle each appropriately:
 
-**DONE:** Proceed to spec compliance review.
+**DONE:** Proceed to combined review.
 
 **DONE_WITH_CONCERNS:** The implementer completed the work but flagged doubts. Read the concerns before proceeding. If the concerns are about correctness or scope, address them before review. If they're observations (e.g. "this file is getting large"), note them and proceed to review.
 
@@ -396,13 +301,10 @@ Implementer subagents report one of four statuses. Handle each appropriately:
 
 **Never** ignore an escalation or force the same model to retry without changes. If the implementer said it's stuck, something needs to change.
 
-**Parallel dispatch note:** When multiple implementers run concurrently, each reports its status independently. A NEEDS_CONTEXT or BLOCKED from one does not block the others. Answer the question or address the blocker for that specific task while the others continue.
-
 ## Prompt Templates
 
 - `./implementer-prompt.md` - Dispatch implementer subagent (both paths)
-- `./spec-reviewer-prompt.md` - Dispatch spec compliance reviewer subagent (full path)
-- `./code-quality-reviewer-prompt.md` - Dispatch code quality reviewer subagent (full path)
+- `./reviewer-prompt.md` - Dispatch combined reviewer subagent (full path)
 - `./fast-path-reviewer-prompt.md` - Dispatch combined reviewer subagent (fast path)
 
 ## Example Workflows
@@ -427,17 +329,23 @@ Classification: SIMPLE
 Path: Fast
 Justification: Identical string replacement across 8 independent files with zero logic changes.
 
-[Dispatch single implementer with all 8 files as one batch]
+[Dispatch single implementer (model: haiku) with all 8 files as one batch]
 
 Implementer:
   - Updated copyright year in all 8 files
   - Self-review: All changes are consistent string replacements
-  - Committed
 
-[Dispatch combined reviewer with triage evidence table]
+[Dispatch combined reviewer (model: haiku)]
 
 Combined reviewer: [PASS] All 8 files correctly updated. Changes match spec exactly,
 no extra modifications, consistent with surrounding code style.
+
+[Present diff to user]
+Here are the changes - 8 files with updated copyright headers. Ready to commit?
+
+User: Looks good, commit it.
+
+[Commit changes]
 
 Done!
 ```
@@ -447,15 +355,12 @@ Done!
 ```
 You: I'm using Subagent-Driven Development to implement this design.
 
-[Decompose design into tasks: map file structure, define 5 tasks with acceptance criteria, assign dependency tiers]
-[Create {{TASK_TRACKER_TOOL}} with all tasks]
-[Tier 0: Tasks 1, 2 (independent, no shared files). Tier 1: Tasks 3-5]
+[Decompose design into tasks: map file structure, define 5 tasks with acceptance criteria, order by dependencies]
+[Create {{TASK_TRACKER_TOOL}} with all tasks, each annotated with subagent type and model: haiku]
 
-Tier 0 - dispatching Tasks 1 and 2 in parallel (worktree isolation)
+Task 1 (model: haiku):
 
-[Dispatch both implementers with isolation: "worktree", run_in_background: true]
-
-Task 1 completes first:
+[Dispatch implementer]
 
 Implementer: "Before I begin - should the hook be installed at user or system level?"
 
@@ -466,57 +371,49 @@ Implementer: "Got it. Implementing now..."
   - Implemented install-hook command
   - Added tests, 5/5 passing
   - Self-review: Found I missed --force flag, added it
-  - Committed all changes
 
-[Merge worktree branch to main, delete branch]
-[Dispatch spec compliance reviewer]
-Spec reviewer: [PASS] Spec compliant - all requirements met, nothing extra
+[Dispatch reviewer]
+Reviewer: [PASS] Spec compliant, code quality good. Clean implementation, good test coverage.
 
-[Get git SHAs, dispatch code quality reviewer]
-Code reviewer: Strengths: Good test coverage, clean. Issues: None. Approved.
+[Present diff to user]
+Task 1 complete: install-hook command with --force flag. 5 tests passing.
+Here's the diff - ready to commit?
 
-[Mark Task 1 complete]
+User: Yes, commit.
 
-Task 2 completes:
+[Commit, mark Task 1 complete]
 
-Implementer: [No questions, proceeds]
+Task 2 (model: haiku):
+
+[Dispatch implementer]
+
 Implementer:
   - Added verify/repair modes
   - 8/8 tests passing
   - Self-review: All good
-  - Committed all changes
 
-[Merge worktree branch to main, delete branch]
-[Dispatch spec compliance reviewer]
-Spec reviewer: [FAIL] Issues:
+[Dispatch reviewer]
+Reviewer: [FAIL] Issues:
   - Missing: Progress reporting (spec says "report every 100 items")
   - Extra: Added --json flag (not requested)
+  - Magic number (100) should be a named constant
 
-[Dispatch fix subagent on main tree (no worktree, task is now sequential)]
-Implementer: Removed --json flag, added progress reporting
+[Dispatch fix subagent (model: haiku)]
+Implementer: Removed --json flag, added progress reporting with PROGRESS_INTERVAL constant
 
-[Spec reviewer reviews again]
-Spec reviewer: [PASS] Spec compliant now
+[Reviewer reviews again]
+Reviewer: [PASS] Spec compliant now, quality good.
 
-[Dispatch code quality reviewer]
-Code reviewer: Strengths: Solid. Issues (Important): Magic number (100)
+[Present diff to user]
+Task 2 complete: verify/repair modes with progress reporting. 8 tests passing.
+The reviewer caught a missing requirement and an extra flag on first pass, both fixed.
+Here's the diff - ready to commit?
 
-[Implementer fixes on main tree]
-Implementer: Extracted PROGRESS_INTERVAL constant
+User: Yes.
 
-[Code reviewer reviews again]
-Code reviewer: [PASS] Approved
+[Commit, mark Task 2 complete]
 
-[Mark Task 2 complete]
-[Tier 0 complete]
-
-Tier 1 - Tasks 3-5 (sequential within tier due to dependencies)
-
-...
-
-[After all tiers]
-[Dispatch final code-reviewer]
-Final reviewer: All requirements met, ready to merge
+Tasks 3-5...
 
 Done!
 ```
@@ -526,8 +423,8 @@ Done!
 **vs. Manual execution:**
 - Subagents follow TDD naturally
 - Fresh context per task (no confusion)
-- Independent tasks run in parallel (worktree isolation)
 - Subagent can ask questions (before AND during work)
+- User reviews each chunk before it's committed
 
 **Efficiency gains:**
 - No file reading overhead (controller provides full text)
@@ -535,42 +432,40 @@ Done!
 - Design-to-execution in one flow (no intermediate handoff)
 - Subagent gets complete information upfront
 - Questions surfaced before work begins (not after)
-- Parallel implementation within dependency tiers reduces wall-clock time
+- Cheap models for grunt work keeps cost down
 
 **Quality gates:**
 - Self-review catches issues before handoff
-- Two-stage review: spec compliance, then code quality
+- Combined review: spec compliance and code quality in one pass
 - Review loops to ensure fixes actually work
+- User checkpoint after each task
 - Spec compliance prevents over/under-building
 - Code quality ensures the implementation is well-built
 
 **Cost:**
-- More subagent invocations (implementer + 2 reviewers per task)
+- More subagent invocations (implementer + reviewer per task)
 - Controller does more prep work (extracting all tasks upfront)
 - Review loops add iterations
-- But catches issues early (cheaper than debugging later)
+- But cheap models and combined review keep token spend reasonable
+- Catches issues early (cheaper than debugging later)
 
 ## Red Flags
 
 **Never:**
-- Skip reviews (spec compliance OR code quality)
+- Use worktrees (`isolation: "worktree"` is forbidden)
+- Let subagents commit (the orchestrator owns all git operations)
+- Skip reviews
 - Proceed with unfixed issues
-- Dispatch parallel implementers without worktree isolation (git conflicts)
-- Dispatch parallel implementers for tasks that share files or have dependencies
-- Wait for all implementers to finish before starting reviews (process each completion immediately as it arrives, start its review pipeline straight away)
-- Proceed to review before merging the worktree branch back to the main tree
-- Leave worktree branches un-merged or un-deleted after task completion (branch litter)
-- Dispatch fix subagents back into a worktree that has already been cleaned up (fix on the main tree instead)
-- Allow subagents to use `sudo` or elevated privileges (creates root-owned files that break cleanup and pollute the main tree)
-- Proceed to the next tier before every task in the current tier has both spec review PASS and quality review PASS (the tier completion gate is not optional)
+- Commit without user approval (always checkpoint first)
+- Use expensive models without justification (default to `haiku`)
 - Make a subagent discover context on its own (provide full text instead)
 - Skip scene-setting context (subagent needs to understand where a task fits)
 - Ignore subagent questions (answer before letting them proceed)
-- Accept "close enough" on spec compliance (spec reviewer found issues = not done)
+- Accept "close enough" on spec compliance (reviewer found issues = not done)
 - Skip review loops (reviewer found issues = implementer fixes = review again)
 - Let implementer self-review replace the actual review (both are needed)
-- **Start code quality review before spec compliance is correct** (wrong order)
-- Move to the next task while either review has open issues
+- Move to the next task while a review has open issues
+- Allow subagents to use `sudo` or elevated privileges
 
 **If subagent asks questions:**
 - Answer clearly and completely
@@ -578,13 +473,14 @@ Done!
 - Don't rush them into implementation
 
 **If the reviewer finds issues:**
-- Implementer (same subagent) fixes them
+- Implementer (same subagent type) fixes them
 - Reviewer reviews again
 - Repeat until approved
 - Don't skip the re-review
 
 **If subagent fails task:**
-- Dispatch fix subagent with specific instructions
+- Re-dispatch with a more capable model before anything else
+- If that fails, dispatch fix subagent with specific instructions
 - Don't try to fix manually (context pollution)
 
 **Complexity triage:**
@@ -604,4 +500,3 @@ Done!
 
 **Subagents should use:**
 - **test-driven-development** - Subagents follow TDD for each task
-

@@ -55,6 +55,8 @@ Task tool (code-reviewer):
     - Are there any style, naming, or convention violations?
     - Is there unnecessary complexity introduced?
     - For changes that affect tests, do the tests verify the right things?
+    - Did this implementation create new files that are already large or significantly
+      grow existing files?
 
     Report:
     - [PASS] Approved (spec compliant and quality acceptable)
