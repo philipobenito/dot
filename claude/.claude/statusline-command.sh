@@ -1,66 +1,115 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-# Read JSON input from stdin
 input=$(cat)
-cwd=$(echo "$input" | jq -r '.workspace.current_dir')
 
-# Catppuccin Mocha colour palette (RGB values)
-# blue=#89b4fa (137,180,250), maroon=#eba0ac (235,160,172), teal=#94e2d5 (148,226,213)
-# bright-black (using overlay1)=#7f849c (127,132,156), cyan=#89dceb (137,220,235)
-colour_blue="\033[38;2;137;180;250m"
-colour_maroon="\033[38;2;235;160;172m"
-colour_teal="\033[38;2;148;226;213m"
-colour_bright_black="\033[38;2;127;132;156m"
-colour_cyan="\033[38;2;137;220;235m"
-colour_reset="\033[0m"
+model=$(echo "$input" | jq -r '.model.display_name // "unknown"')
+cwd=$(echo "$input" | jq -r '.cwd // "."')
+rate_5h=$(echo "$input" | jq -r '.rate_limits.five_hour.used_percentage // empty')
+rate_7d=$(echo "$input" | jq -r '.rate_limits.seven_day.used_percentage // empty')
+reset_5h_at=$(echo "$input" | jq -r '.rate_limits.five_hour.resets_at // empty')
+reset_7d_at=$(echo "$input" | jq -r '.rate_limits.seven_day.resets_at // empty')
 
-# Directory component (blue, as per Starship config)
-dir_display="$cwd"
-# Replace home directory with ~
-dir_display="${dir_display/#$HOME/\~}"
+# English ordinal suffix: 1st 2nd 3rd 4th ... 11th 12th 13th 21st 22nd ...
+ordinal_suffix() {
+    local n=$1
+    case $((n % 100)) in
+        11|12|13) echo "th" ;;
+        *) case $((n % 10)) in
+            1) echo "st" ;;
+            2) echo "nd" ;;
+            3) echo "rd" ;;
+            *) echo "th" ;;
+        esac ;;
+    esac
+}
 
-# Git branch information (maroon icon, bright-black text)
-git_branch=""
-if [ -d "$cwd/.git" ]; then
-    # Read branch name directly from filesystem to avoid git lock files
-    if [ -f "$cwd/.git/HEAD" ]; then
-        head_content=$(cat "$cwd/.git/HEAD")
-        if [[ $head_content == ref:* ]]; then
-            branch=$(echo "$head_content" | sed 's/ref: refs\/heads\///')
+# Truecolor ANSI. Palette: Catppuccin Mocha (matches starship).
+# Set NO_COLOR (https://no-color.org/) to disable.
+if [ -n "$NO_COLOR" ]; then
+    c_cwd=""; c_git_accent=""; c_branch=""; c_model=""
+    c_warn=""; c_danger=""
+    c_rate_low=""; c_sep=""; c_reset=""
+else
+    esc=$'\033'
+    c_cwd="${esc}[38;2;137;180;250m"        # blue    #89b4fa
+    c_git_accent="${esc}[38;2;243;139;168m" # red     #f38ba8
+    c_branch="${esc}[38;2;205;214;244m"     # text    #cdd6f4
+    c_model="${esc}[38;2;180;190;254m"      # lavender #b4befe
+    c_warn="${esc}[38;2;250;179;135m"       # peach   #fab387
+    c_danger="${esc}[38;2;243;139;168m"     # red     #f38ba8
+    c_rate_low="${esc}[38;2;166;173;200m"   # subtext0 #a6adc8
+    c_sep="${esc}[38;2;108;112;134m"        # overlay0 #6c7086
+    c_reset="${esc}[0m"
+fi
+
+cwd_display="${cwd/#$HOME/\~}"
+cwd_part="${c_cwd}  ${cwd_display}${c_reset}"
+
+git_branch=$(git -C "$cwd" rev-parse --abbrev-ref HEAD 2>/dev/null)
+git_dirty=$(git -C "$cwd" status --porcelain 2>/dev/null)
+
+if [ -n "$git_branch" ]; then
+    if [ -n "$git_dirty" ]; then
+        git_status=""
+    else
+        git_status=""
+    fi
+    git_part="${c_git_accent} ${c_branch}${git_branch}${c_reset}${c_git_accent}${git_status}${c_reset}"
+else
+    git_part=""
+fi
+
+model_part="${c_model}  ${model}${c_reset}"
+
+if [ -n "$rate_5h" ] && [ -n "$rate_7d" ]; then
+    rate_5h_int=$(printf '%.0f' "$rate_5h")
+    rate_7d_int=$(printf '%.0f' "$rate_7d")
+    if [ "$rate_5h_int" -ge "$rate_7d_int" ]; then
+        rate_max="$rate_5h_int"
+    else
+        rate_max="$rate_7d_int"
+    fi
+    if [ "$rate_max" -ge 90 ]; then
+        rate_colour="$c_danger"
+    elif [ "$rate_max" -ge 60 ]; then
+        rate_colour="$c_warn"
+    else
+        rate_colour="$c_rate_low"
+    fi
+    if [ -n "$reset_5h_at" ]; then
+        reset_5h_time=$(date -d "@$reset_5h_at" +'%-I%p %Z' | tr '[:lower:]' '[:upper:]')
+        if [ "$(date -d "@$reset_5h_at" +%Y%m%d)" != "$(date +%Y%m%d)" ]; then
+            reset_5h_str=" → ${reset_5h_time} tomorrow"
         else
-            branch="detached"
+            reset_5h_str=" → ${reset_5h_time}"
         fi
-        git_branch=" ${colour_maroon}${colour_reset} ${colour_bright_black}${branch}${colour_reset}"
+    else
+        reset_5h_str=""
     fi
-fi
-
-# Git status information (maroon indicators, cyan style)
-git_status=""
-if [ -d "$cwd/.git" ] && command -v git &> /dev/null; then
-    # Use --no-optional-locks to avoid lock file issues
-    cd "$cwd" 2>/dev/null || exit 0
-
-    # Check for modifications without acquiring locks
-    if ! git --no-optional-locks diff --quiet 2>/dev/null || \
-       ! git --no-optional-locks diff --cached --quiet 2>/dev/null || \
-       [ -n "$(git --no-optional-locks ls-files --others --exclude-standard 2>/dev/null | head -n1)" ]; then
-        git_status=" ${colour_maroon}${colour_reset}"
+    if [ -n "$reset_7d_at" ]; then
+        d=$(date -d "@$reset_7d_at" +%-d)
+        reset_7d_str=" → ${d}$(ordinal_suffix "$d") $(date -d "@$reset_7d_at" +%b)"
+    else
+        reset_7d_str=""
     fi
+    rate_part="${rate_colour}󰥔  5h ${rate_5h_int}%${reset_5h_str} · 7d ${rate_7d_int}%${reset_7d_str}${c_reset}"
+else
+    rate_part=""
 fi
 
-# Python virtualenv (bright-black style)
-python_info=""
-if [ -n "$VIRTUAL_ENV" ]; then
-    venv_name=$(basename "$VIRTUAL_ENV")
-    python_info=" ${colour_bright_black}${venv_name}${colour_reset}"
-fi
+parts=("$cwd_part")
+[ -n "$git_part" ] && parts+=("$git_part")
+parts+=("$model_part")
+[ -n "$rate_part" ] && parts+=("$rate_part")
 
-# Build the status line following Starship format order
-# Format: directory git_branch git_status python line_break character
-printf "%b%s%b" "$colour_blue" "$dir_display" "$colour_reset"
-[ -n "$git_branch" ] && printf "%b" "$git_branch"
-[ -n "$git_status" ] && printf "%b" "$git_status"
-[ -n "$python_info" ] && printf "%b" "$python_info"
-printf " %b%b" "$colour_teal" "$colour_reset"
+sep=" ${c_sep} ${c_reset} "
+output=""
+for i in "${!parts[@]}"; do
+    if [ "$i" -eq 0 ]; then
+        output="${parts[$i]}"
+    else
+        output="${output}${sep}${parts[$i]}"
+    fi
+done
 
-exit 0
+echo "$output"
