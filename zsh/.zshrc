@@ -27,3 +27,6 @@ export _ZO_DOCTOR=0
 
 [ -f "$ZSH_CONFIG_DIR/zoxide.zsh" ] && source "$ZSH_CONFIG_DIR/zoxide.zsh"
 
+
+# opencode
+export PATH=/home/pbenn/.opencode/bin:$PATH

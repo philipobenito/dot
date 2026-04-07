@@ -3,54 +3,48 @@ set -euo pipefail
 
 # =============================================================================
 # Dotfiles Install Script
-# Cross-platform CLI tools installer for macOS and Linux (Arch, Debian, Fedora)
-# Note: Hyprland desktop environment is managed separately by Omarchy
+# Cross-platform CLI tools installer for macOS and Linux (Debian, Fedora)
 # =============================================================================
 
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # =============================================================================
 # Package Map
-# Format: package_name:brew:pacman:apt:dnf
+# Format: package_name:brew:apt:dnf
 # Use "-" for packages not available on a platform
-# Use "AUR:pkg" for Arch AUR packages
 # =============================================================================
 
 PACKAGES=(
     # Core utilities
-    "git:git:git:git:git"
-    "stow:stow:stow:stow:stow"
-    "curl:curl:curl:curl:curl"
-    "wget:wget:wget:wget:wget"
-    "unzip:unzip:unzip:unzip:unzip"
+    "git:git:git:git"
+    "stow:stow:stow:stow"
+    "curl:curl:curl:curl"
+    "wget:wget:wget:wget"
+    "unzip:unzip:unzip:unzip"
 
     # Shell
-    "zsh:zsh:zsh:zsh:zsh"
-    "starship:starship:starship:starship:starship"
+    "zsh:zsh:zsh:zsh"
+    "starship:starship:starship:starship"
 
     # Modern CLI replacements
-    "bat:bat:bat:bat:bat"
-    "lsd:lsd:lsd:lsd:lsd"
-    "fd:fd:fd:fd-find:fd-find"
-    "ripgrep:ripgrep:ripgrep:ripgrep:ripgrep"
-    "fzf:fzf:fzf:fzf:fzf"
-    "zoxide:zoxide:zoxide:zoxide:zoxide"
-    "duf:duf:duf:duf:duf"
-    "dust:dust:dust:dust:dust"
-    "tldr:tldr:tldr:tldr:tldr"
-    "btop:btop:btop:btop:btop"
+    "bat:bat:bat:bat"
+    "lsd:lsd:lsd:lsd"
+    "fd:fd:fd-find:fd-find"
+    "ripgrep:ripgrep:ripgrep:ripgrep"
+    "fzf:fzf:fzf:fzf"
+    "zoxide:zoxide:zoxide:zoxide"
+    "duf:duf:duf:duf"
+    "dust:dust:dust:dust"
+    "tldr:tldr:tldr:tldr"
+    "btop:btop:btop:btop"
 
     # Development tools
-    "neovim:neovim:neovim:neovim:neovim"
-    "git-delta:git-delta:git-delta:git-delta:git-delta"
-    "diff-so-fancy:diff-so-fancy:diff-so-fancy:diff-so-fancy:diff-so-fancy"
-    "lazygit:lazygit:lazygit:-:lazygit"
-    "lazydocker:lazydocker:lazydocker:-:lazydocker"
-    "mise:mise:AUR:mise:mise:mise"
-
-    # Terminal emulators
-    "alacritty:alacritty:alacritty:alacritty:alacritty"
-    "ghostty:ghostty:AUR:ghostty:-:-"
+    "neovim:neovim:neovim:neovim"
+    "git-delta:git-delta:git-delta:git-delta"
+    "diff-so-fancy:diff-so-fancy:diff-so-fancy:diff-so-fancy"
+    "lazygit:lazygit:-:lazygit"
+    "lazydocker:lazydocker:-:-"
+    "mise:mise:mise:mise"
 )
 
 # =============================================================================
@@ -81,7 +75,6 @@ detect_os() {
             if [[ -f /etc/os-release ]]; then
                 . /etc/os-release
                 case "$ID" in
-                    arch|manjaro|endeavouros) echo "arch" ;;
                     debian|ubuntu|pop|linuxmint) echo "debian" ;;
                     fedora|rhel|centos) echo "fedora" ;;
                     *) echo "unknown" ;;
@@ -97,7 +90,6 @@ detect_os() {
 get_pkg_manager() {
     case "$1" in
         macos) echo "brew" ;;
-        arch) echo "pacman" ;;
         debian) echo "apt" ;;
         fedora) echo "dnf" ;;
         *) echo "unknown" ;;
@@ -107,9 +99,8 @@ get_pkg_manager() {
 get_pkg_index() {
     case "$1" in
         brew) echo 1 ;;
-        pacman) echo 2 ;;
-        apt) echo 3 ;;
-        dnf) echo 4 ;;
+        apt) echo 2 ;;
+        dnf) echo 3 ;;
         *) echo 0 ;;
     esac
 }
@@ -122,18 +113,6 @@ install_homebrew() {
     if ! command -v brew &>/dev/null; then
         info "Installing Homebrew..."
         /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-    fi
-}
-
-install_yay() {
-    if ! command -v yay &>/dev/null; then
-        info "Installing yay AUR helper..."
-        sudo pacman -S --needed --noconfirm base-devel git
-        local tmpdir
-        tmpdir=$(mktemp -d)
-        git clone https://aur.archlinux.org/yay.git "$tmpdir/yay"
-        (cd "$tmpdir/yay" && makepkg -si --noconfirm)
-        rm -rf "$tmpdir"
     fi
 }
 
@@ -154,26 +133,10 @@ install_package() {
         return 0
     fi
 
-    # Handle AUR packages
-    if [[ "$pkg" == AUR:* ]]; then
-        local aur_pkg="${pkg#AUR:}"
-        if command -v yay &>/dev/null; then
-            info "Installing $pkg_name from AUR..."
-            yay -S --needed --noconfirm "$aur_pkg"
-        else
-            warn "Skipping $pkg_name (AUR helper not available)"
-            return 0
-        fi
-        return 0
-    fi
-
     info "Installing $pkg_name..."
     case "$pkg_manager" in
         brew)
             brew install "$pkg" 2>/dev/null || brew upgrade "$pkg" 2>/dev/null || true
-            ;;
-        pacman)
-            sudo pacman -S --needed --noconfirm "$pkg"
             ;;
         apt)
             sudo apt-get install -y "$pkg"
@@ -182,6 +145,16 @@ install_package() {
             sudo dnf install -y "$pkg"
             ;;
     esac
+}
+
+install_ghostty_fedora() {
+    if command -v ghostty &>/dev/null; then
+        success "ghostty already installed"
+        return 0
+    fi
+    info "Enabling COPR pgdev/ghostty..."
+    sudo dnf copr enable -y pgdev/ghostty
+    sudo dnf install -y ghostty
 }
 
 # =============================================================================
@@ -226,7 +199,11 @@ stow_packages() {
 
     for pkg in "${packages[@]}"; do
         info "Stowing $pkg..."
-        stow -t "$HOME" -v "$pkg" 2>/dev/null || warn "Failed to stow $pkg"
+        local stow_args=()
+        if [[ "$pkg" == "claude" ]]; then
+            stow_args+=(--no-folding)
+        fi
+        stow "${stow_args[@]}" -t "$HOME" -v "$pkg" 2>/dev/null || warn "Failed to stow $pkg"
     done
 }
 
@@ -266,8 +243,8 @@ Options:
     --packages      Only install packages (no stowing)
     --help          Show this help message
 
-Note: Hyprland and desktop environment packages are managed by Omarchy.
-      This script only installs CLI tools and stows configuration files.
+Note: This script installs CLI tools and stows configuration files.
+      Desktop environment is assumed to be provided by the distro (e.g. GNOME on Fedora).
 
 Examples:
     ./install.sh              # Full installation
@@ -330,10 +307,6 @@ main() {
             brew)
                 install_homebrew
                 ;;
-            pacman)
-                sudo pacman -Syu --noconfirm
-                install_yay
-                ;;
             apt)
                 sudo apt-get update
                 ;;
@@ -349,6 +322,13 @@ main() {
         for pkg in "${PACKAGES[@]}"; do
             install_package "$pkg" "$PKG_MANAGER"
         done
+
+        # Ghostty needs a distro-specific path
+        if [[ "$OS" == "fedora" ]]; then
+            install_ghostty_fedora
+        elif [[ "$OS" == "macos" ]]; then
+            brew install --cask ghostty 2>/dev/null || true
+        fi
     fi
 
     # Install Oh My Zsh and plugins

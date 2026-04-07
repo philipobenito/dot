@@ -16,17 +16,15 @@
     ],
     "defaultMode": "bypassPermissions"
   },
-  "model": "opus[1m]",
   "statusLine": {
     "type": "command",
-    "command": "bash ~/.config/statusline-command.sh"
+    "command": "bash ~/.claude/statusline-command.sh"
   },
   "enabledPlugins": {
     "php-lsp@claude-plugins-official": true,
     "frontend-design@claude-plugins-official": true,
     "rust-analyzer-lsp@claude-plugins-official": true,
     "gopls-lsp@claude-plugins-official": true,
-    "context7@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": true,
     "github@claude-plugins-official": true,
     "explanatory-output-style@claude-plugins-official": true,

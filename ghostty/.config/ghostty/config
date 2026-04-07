@@ -1,25 +1,30 @@
-# Dynamic theme colors
-config-file = ?~/.config/omarchy/current/theme/ghostty.conf
+# Shell
+command = /usr/bin/zsh -l
+
+# Theme
+theme = Catppuccin Mocha
 
 # Font
-font-family = OperatorMonoLig Nerd Font
+font-family = FiraCode Nerd Font
+font-style = Light
 font-size = 14
-adjust-cell-height = 14
+adjust-cell-height = 50%
 
 # Enable ligatures (enabled by default, but explicit)
 font-feature = +calt
 font-feature = +liga
 
 # Window
-window-theme = ghostty
-window-padding-x = 14
-window-padding-y = 14
-confirm-close-surface=false
+window-padding-x = 16
+window-padding-y = 16
+window-height = 26
+window-width = 100
+confirm-close-surface = false
 resize-overlay = never
 gtk-toolbar-style = flat
 
 # Cursor styling
-cursor-style = "block"
+cursor-style = block
 cursor-style-blink = false
 
 # Cursor styling + SSH session terminfo
