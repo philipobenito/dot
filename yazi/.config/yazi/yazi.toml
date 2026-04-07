@@ -1,8 +1,0 @@
-[mgr]
-show_hidden = true
-sort_by     = "natural"
-sort_dir    = "first"
-
-[preview]
-max_width  = 1000
-max_height = 1000

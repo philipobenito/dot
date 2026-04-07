@@ -4,7 +4,6 @@ set -euo pipefail
 # =============================================================================
 # Dotfiles Install Script
 # Cross-platform CLI tools installer for macOS and Linux (Arch, Debian, Fedora)
-# Note: Hyprland desktop environment is managed separately by Omarchy
 # =============================================================================
 
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -266,8 +265,7 @@ Options:
     --packages      Only install packages (no stowing)
     --help          Show this help message
 
-Note: Hyprland and desktop environment packages are managed by Omarchy.
-      This script only installs CLI tools and stows configuration files.
+This script installs CLI tools and stows configuration files.
 
 Examples:
     ./install.sh              # Full installation
