@@ -9,6 +9,13 @@ rate_7d=$(echo "$input" | jq -r '.rate_limits.seven_day.used_percentage // empty
 reset_5h_at=$(echo "$input" | jq -r '.rate_limits.five_hour.resets_at // empty')
 reset_7d_at=$(echo "$input" | jq -r '.rate_limits.seven_day.resets_at // empty')
 
+# Portable epoch->date formatter. GNU date uses `-d @epoch`, BSD/macOS uses `-r epoch`.
+if date --version >/dev/null 2>&1; then
+    fmt_epoch() { date -d "@$1" +"$2"; }
+else
+    fmt_epoch() { date -r "$1" +"$2"; }
+fi
+
 # English ordinal suffix: 1st 2nd 3rd 4th ... 11th 12th 13th 21st 22nd ...
 ordinal_suffix() {
     local n=$1
@@ -81,18 +88,19 @@ if [ -n "$rate_5h" ] && [ -n "$rate_7d" ]; then
         rate_colour="$c_rate_low"
     fi
     if [ -n "$reset_5h_at" ]; then
-        reset_5h_time=$(date -d "@$reset_5h_at" +'%-I%p %Z' | tr '[:lower:]' '[:upper:]')
-        if [ "$(date -d "@$reset_5h_at" +%Y%m%d)" != "$(date +%Y%m%d)" ]; then
-            reset_5h_str=" → ${reset_5h_time} tomorrow"
+        reset_5h_ampm=$(fmt_epoch "$reset_5h_at" '%-I%p' | tr -d '.' | tr '[:upper:]' '[:lower:]')
+        reset_5h_time="${reset_5h_ampm} $(fmt_epoch "$reset_5h_at" %Z)"
+        if [ "$(fmt_epoch "$reset_5h_at" %Y%m%d)" != "$(date +%Y%m%d)" ]; then
+            reset_5h_str=" →  ${reset_5h_time} tomorrow"
         else
-            reset_5h_str=" → ${reset_5h_time}"
+            reset_5h_str=" →  ${reset_5h_time}"
         fi
     else
         reset_5h_str=""
     fi
     if [ -n "$reset_7d_at" ]; then
-        d=$(date -d "@$reset_7d_at" +%-d)
-        reset_7d_str=" → ${d}$(ordinal_suffix "$d") $(date -d "@$reset_7d_at" +%b)"
+        d=$(fmt_epoch "$reset_7d_at" %-d)
+        reset_7d_str=" →  ${d}$(ordinal_suffix "$d") $(fmt_epoch "$reset_7d_at" %b)"
     else
         reset_7d_str=""
     fi
