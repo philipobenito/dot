@@ -112,7 +112,6 @@ fi
 parts=("$cwd_part")
 [ -n "$git_part" ] && parts+=("$git_part")
 parts+=("$model_part")
-[ -n "$rate_part" ] && parts+=("$rate_part")
 
 sep=" ${c_sep} ${c_reset} "
 output=""
@@ -124,4 +123,8 @@ for i in "${!parts[@]}"; do
     fi
 done
 
-echo "$output"
+if [ -n "$rate_part" ]; then
+    printf '%s\n%s\n' "$output" "$rate_part"
+else
+    printf '%s\n' "$output"
+fi
