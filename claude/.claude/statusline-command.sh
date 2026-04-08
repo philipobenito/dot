@@ -100,7 +100,7 @@ if [ -n "$rate_5h" ] && [ -n "$rate_7d" ]; then
     fi
     if [ -n "$reset_7d_at" ]; then
         d=$(fmt_epoch "$reset_7d_at" %-d)
-        reset_7d_str=" →  ${d}$(ordinal_suffix "$d") $(fmt_epoch "$reset_7d_at" %b)"
+        reset_7d_str=" →  $(fmt_epoch "$reset_7d_at" %a) ${d}$(ordinal_suffix "$d") $(fmt_epoch "$reset_7d_at" %b)"
     else
         reset_7d_str=""
     fi
