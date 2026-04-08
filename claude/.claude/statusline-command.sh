@@ -42,7 +42,11 @@ else
     c_reset="${esc}[0m"
 fi
 
-cwd_display="${cwd/#$HOME/\~}"
+if [ "$cwd" = "$HOME" ]; then
+    cwd_display="~"
+else
+    cwd_display="${cwd##*/}"
+fi
 cwd_part="${c_cwd}  ${cwd_display}${c_reset}"
 
 git_branch=$(git -C "$cwd" rev-parse --abbrev-ref HEAD 2>/dev/null)
