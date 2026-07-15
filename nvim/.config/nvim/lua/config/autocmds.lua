@@ -19,3 +19,11 @@ vim.api.nvim_create_autocmd("BufWritePre", {
         vim.fn.setpos(".", save_cursor)
     end,
 })
+
+-- Disable LazyVim's automatic spell checking in text filetypes
+vim.api.nvim_del_augroup_by_name("lazyvim_wrap_spell")
+
+-- Enable scope dimming once plugins have loaded
+vim.schedule(function()
+    Snacks.dim()
+end)
