@@ -6,8 +6,7 @@ os:
   openDirInEditor: 'nvr --remote-tab {{dir}}'
 git:
   pagers:
-    - colorArg: always
-      pager: diff-so-fancy
+    - pager: delta --dark --paging=never --line-numbers
 gui:
   showFileTree: false
   theme:
