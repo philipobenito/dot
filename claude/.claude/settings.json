@@ -1,7 +1,6 @@
 {
   "skillListingBudgetFraction": 0.02,
   "env": {
-    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
   },
   "permissions": {
     "allow": [],
@@ -22,30 +21,37 @@
     "command": "bash ~/.claude/statusline-command.sh"
   },
   "enabledPlugins": {
-    "php-lsp@claude-plugins-official": true,
-    "frontend-design@claude-plugins-official": true,
-    "rust-analyzer-lsp@claude-plugins-official": true,
-    "gopls-lsp@claude-plugins-official": true,
-    "typescript-lsp@claude-plugins-official": true,
-    "github@claude-plugins-official": true,
+    "claude-md-management@claude-plugins-official": true,
+    "code-simplifier@claude-plugins-official": true,
+    "context7@claude-plugins-official": true,
     "explanatory-output-style@claude-plugins-official": true,
+    "frontend-design@claude-plugins-official": true,
+    "github@claude-plugins-official": true,
+    "gitkraken-hooks@gitkraken": true,
+    "gopls-lsp@claude-plugins-official": true,
+    "php-lsp@claude-plugins-official": true,
+    "ralph-loop@claude-plugins-official": true,
+    "rust-analyzer-lsp@claude-plugins-official": true,
+    "skill-creator@claude-plugins-official": true,
+    "typescript-lsp@claude-plugins-official": true,
+    "voltagent-biz@voltagent-subagents": true,
     "voltagent-core-dev@voltagent-subagents": true,
+    "voltagent-data-ai@voltagent-subagents": true,
     "voltagent-dev-exp@voltagent-subagents": true,
     "voltagent-domains@voltagent-subagents": true,
     "voltagent-infra@voltagent-subagents": true,
     "voltagent-lang@voltagent-subagents": true,
     "voltagent-meta@voltagent-subagents": true,
     "voltagent-qa-sec@voltagent-subagents": true,
-    "voltagent-biz@voltagent-subagents": true,
-    "voltagent-data-ai@voltagent-subagents": true,
-    "voltagent-research@voltagent-subagents": true,
-    "skill-creator@claude-plugins-official": true,
-    "claude-md-management@claude-plugins-official": true,
-    "code-simplifier@claude-plugins-official": true,
-    "ralph-loop@claude-plugins-official": true,
-    "context7@claude-plugins-official": true
+    "voltagent-research@voltagent-subagents": true
   },
   "extraKnownMarketplaces": {
+    "gitkraken": {
+      "source": {
+        "source": "directory",
+        "path": "/Users/phil.bennett/.claude/plugins/marketplaces/gitkraken"
+      }
+    },
     "voltagent-subagents": {
       "source": {
         "source": "github",
@@ -65,6 +71,5 @@
   "editorMode": "normal",
   "verbose": false,
   "preferredNotifChannel": "auto",
-  "teammateMode": "in-process",
   "voiceEnabled": true
 }
