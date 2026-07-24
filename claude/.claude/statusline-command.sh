@@ -88,7 +88,7 @@ if [ -n "$rate_5h" ] && [ -n "$rate_7d" ]; then
         rate_colour="$c_rate_low"
     fi
     if [ -n "$reset_5h_at" ]; then
-        reset_5h_ampm=$(fmt_epoch "$reset_5h_at" '%-I%p' | tr -d '.' | tr '[:upper:]' '[:lower:]')
+        reset_5h_ampm=$(fmt_epoch "$reset_5h_at" '%-I:%M%p' | tr -d '.' | tr '[:upper:]' '[:lower:]')
         reset_5h_time="${reset_5h_ampm} $(fmt_epoch "$reset_5h_at" %Z)"
         if [ "$(fmt_epoch "$reset_5h_at" %Y%m%d)" != "$(date +%Y%m%d)" ]; then
             reset_5h_str=" →  ${reset_5h_time} tomorrow"
