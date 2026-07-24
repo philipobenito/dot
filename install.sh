@@ -45,11 +45,11 @@ PACKAGES=(
     "diff-so-fancy:diff-so-fancy:diff-so-fancy:diff-so-fancy:diff-so-fancy"
     "lazygit:lazygit:lazygit:-:lazygit"
     "lazydocker:lazydocker:lazydocker:-:lazydocker"
-    "mise:mise:AUR:mise:mise:mise"
+    "mise:mise:AUR:mise:mise"
 
     # Terminal emulators
     "alacritty:alacritty:alacritty:alacritty:alacritty"
-    "ghostty:ghostty:AUR:ghostty:-:-"
+    "ghostty:ghostty:AUR:-:ghostty"
 )
 
 # =============================================================================
@@ -337,6 +337,26 @@ main() {
                 ;;
             dnf)
                 sudo dnf check-update || true
+                sudo dnf install -y dnf-plugins-core || true
+
+                # Enable COPRs for packages not in default Fedora repos.
+                # Atim's COPRs ship modern Rust/Go CLIs (starship, lazygit, lazydocker, etc.)
+                local enabled_coprs
+                enabled_coprs=$(sudo dnf copr list --enabled 2>/dev/null || true)
+
+                for copr in atim/starship atim/lazygit scottames/ghostty; do
+                    if ! echo "$enabled_coprs" | grep -q "$copr"; then
+                        info "Enabling $copr COPR..."
+                        sudo dnf copr enable -y "$copr" || warn "Failed to enable $copr COPR"
+                    fi
+                done
+
+                # mise ships its own first-party RPM repo (not a COPR).
+                if [[ ! -f /etc/yum.repos.d/mise.repo ]]; then
+                    info "Adding official mise RPM repo..."
+                    sudo dnf config-manager addrepo --from-repofile=https://mise.jdx.dev/rpm/mise.repo \
+                        || warn "Failed to add mise repo"
+                fi
                 ;;
         esac
     fi
@@ -345,7 +365,7 @@ main() {
     if $do_packages; then
         header "Installing packages"
         for pkg in "${PACKAGES[@]}"; do
-            install_package "$pkg" "$PKG_MANAGER"
+            install_package "$pkg" "$PKG_MANAGER" || warn "Failed to install $pkg, continuing..."
         done
     fi
 

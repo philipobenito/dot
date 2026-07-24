@@ -26,7 +26,6 @@
     "rust-analyzer-lsp@claude-plugins-official": true,
     "gopls-lsp@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": true,
-    "github@claude-plugins-official": true,
     "explanatory-output-style@claude-plugins-official": true,
     "voltagent-core-dev@voltagent-subagents": true,
     "voltagent-dev-exp@voltagent-subagents": true,
@@ -41,7 +40,8 @@
     "skill-creator@claude-plugins-official": true,
     "claude-md-management@claude-plugins-official": true,
     "code-simplifier@claude-plugins-official": true,
-    "ralph-loop@claude-plugins-official": true
+    "ralph-loop@claude-plugins-official": true,
+    "github@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
     "voltagent-subagents": {
@@ -51,10 +51,17 @@
       }
     }
   },
-  "skipDangerousModePermissionPrompt": true,
-  "voiceEnabled": true,
+  "promptSuggestionEnabled": false,
+  "tui": "fullscreen",
   "voice": {
     "enabled": true,
     "mode": "hold"
-  }
+  },
+  "skipDangerousModePermissionPrompt": true,
+  "theme": "dark-daltonized",
+  "editorMode": "normal",
+  "verbose": false,
+  "fileCheckpointingEnabled": false,
+  "teammateMode": "in-process",
+  "voiceEnabled": true
 }
