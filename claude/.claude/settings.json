@@ -71,8 +71,8 @@
   "theme": "dark-ansi",
   "editorMode": "normal",
   "verbose": false,
+  "preferredNotifChannel": "auto",
   "fileCheckpointingEnabled": false,
   "teammateMode": "in-process",
-  "preferredNotifChannel": "auto",
   "voiceEnabled": true
 }
