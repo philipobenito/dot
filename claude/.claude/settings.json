@@ -31,20 +31,9 @@
     "gitkraken-hooks@gitkraken": true,
     "gopls-lsp@claude-plugins-official": true,
     "php-lsp@claude-plugins-official": true,
-    "ralph-loop@claude-plugins-official": true,
     "rust-analyzer-lsp@claude-plugins-official": true,
     "skill-creator@claude-plugins-official": true,
-    "typescript-lsp@claude-plugins-official": true,
-    "voltagent-biz@voltagent-subagents": true,
-    "voltagent-core-dev@voltagent-subagents": true,
-    "voltagent-data-ai@voltagent-subagents": true,
-    "voltagent-dev-exp@voltagent-subagents": true,
-    "voltagent-domains@voltagent-subagents": true,
-    "voltagent-infra@voltagent-subagents": true,
-    "voltagent-lang@voltagent-subagents": true,
-    "voltagent-meta@voltagent-subagents": true,
-    "voltagent-qa-sec@voltagent-subagents": true,
-    "voltagent-research@voltagent-subagents": true
+    "typescript-lsp@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
     "gitkraken": {
@@ -61,6 +50,7 @@
     }
   },
   "outputStyle": "Explanatory",
+  "effortLevel": "high",
   "promptSuggestionEnabled": false,
   "tui": "fullscreen",
   "voice": {
@@ -74,5 +64,6 @@
   "preferredNotifChannel": "auto",
   "fileCheckpointingEnabled": false,
   "teammateMode": "in-process",
-  "voiceEnabled": true
+  "voiceEnabled": true,
+  "model": "claude-fable-5[1m]"
 }

@@ -225,7 +225,9 @@ stow_packages() {
 
     for pkg in "${packages[@]}"; do
         info "Stowing $pkg..."
-        stow -t "$HOME" -v "$pkg" 2>/dev/null || warn "Failed to stow $pkg"
+        # --no-folding: link individual files, never fold a whole directory
+        # (a folded ~/.claude would pull runtime state into the repo)
+        stow --no-folding -t "$HOME" -v "$pkg" 2>/dev/null || warn "Failed to stow $pkg"
     done
 }
 
