@@ -41,6 +41,7 @@
     "gitkraken-hooks@gitkraken": true,
     "gopls-lsp@claude-plugins-official": true,
     "php-lsp@claude-plugins-official": true,
+    "ralph-loop@claude-plugins-official": true,
     "rust-analyzer-lsp@claude-plugins-official": true,
     "skill-creator@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": true
@@ -60,6 +61,7 @@
     }
   },
   "outputStyle": "Explanatory",
+  "effortLevel": "high",
   "promptSuggestionEnabled": false,
   "tui": "fullscreen",
   "voice": {
@@ -71,15 +73,5 @@
   "editorMode": "normal",
   "verbose": false,
   "preferredNotifChannel": "auto",
-  "fileCheckpointingEnabled": false,
-  "teammateMode": "in-process",
-  "remoteControlAtStartup": true,
-  "inputNeededNotifEnabled": true,
-  "agentPushNotifEnabled": true,
-  "voiceEnabled": true,
-  "modelSettings": {
-    "claude-opus-5-5": {
-      "effortLevel": "high"
-    }
-  }
+  "voiceEnabled": true
 }

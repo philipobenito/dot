@@ -27,6 +27,8 @@ export _ZO_DOCTOR=0
 
 [ -f "$ZSH_CONFIG_DIR/zoxide.zsh" ] && source "$ZSH_CONFIG_DIR/zoxide.zsh"
 
+command -v gh >/dev/null && export GITHUB_PERSONAL_ACCESS_TOKEN="$(gh auth token 2>/dev/null)"
+
 # opencode
 export PATH=/Users/phil.bennett/.opencode/bin:$PATH
 
