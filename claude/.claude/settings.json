@@ -3,8 +3,15 @@
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
   },
+  "attribution": {
+    "commit": "",
+    "pr": "",
+    "sessionUrl": false
+  },
   "permissions": {
-    "allow": [],
+    "allow": [
+      "Read(~/.claude/skills/**)"
+    ],
     "deny": [
       "Bash(git push --force:*)",
       "Bash(git push -f:*)",
@@ -15,7 +22,10 @@
       "Bash(git branch -D:*)",
       "Bash(git rebase:*)"
     ],
-    "defaultMode": "bypassPermissions"
+    "defaultMode": "bypassPermissions",
+    "additionalDirectories": [
+      "~/.claude/skills"
+    ]
   },
   "statusLine": {
     "type": "command",
@@ -31,20 +41,9 @@
     "gitkraken-hooks@gitkraken": true,
     "gopls-lsp@claude-plugins-official": true,
     "php-lsp@claude-plugins-official": true,
-    "ralph-loop@claude-plugins-official": true,
     "rust-analyzer-lsp@claude-plugins-official": true,
     "skill-creator@claude-plugins-official": true,
-    "typescript-lsp@claude-plugins-official": true,
-    "voltagent-biz@voltagent-subagents": true,
-    "voltagent-core-dev@voltagent-subagents": true,
-    "voltagent-data-ai@voltagent-subagents": true,
-    "voltagent-dev-exp@voltagent-subagents": true,
-    "voltagent-domains@voltagent-subagents": true,
-    "voltagent-infra@voltagent-subagents": true,
-    "voltagent-lang@voltagent-subagents": true,
-    "voltagent-meta@voltagent-subagents": true,
-    "voltagent-qa-sec@voltagent-subagents": true,
-    "voltagent-research@voltagent-subagents": true
+    "typescript-lsp@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
     "gitkraken": {
@@ -72,5 +71,15 @@
   "editorMode": "normal",
   "verbose": false,
   "preferredNotifChannel": "auto",
-  "voiceEnabled": true
+  "fileCheckpointingEnabled": false,
+  "teammateMode": "in-process",
+  "remoteControlAtStartup": true,
+  "inputNeededNotifEnabled": true,
+  "agentPushNotifEnabled": true,
+  "voiceEnabled": true,
+  "modelSettings": {
+    "claude-opus-5-5": {
+      "effortLevel": "high"
+    }
+  }
 }

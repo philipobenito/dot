@@ -1,18 +1,51 @@
 {
-  "$schema": "https://opencode.ai/config.json",
-  "instructions": [
-    "rules/common/*.md",
-    "rules/go/*.md",
-    "rules/javascript/*.md",
-    "rules/php/*.md",
-    "rules/python/*.md",
-    "rules/rust/*.md",
-    "rules/typescript/*.md"
-  ],
-  "permission": {
-    "external_directory": {
-      "~/.config/opencode/skills/**": "allow",
-      "~/.config/opencode/rules/**": "allow"
+    "$schema": "https://opencode.ai/config.json",
+    "provider": {
+        "lmstudio": {
+            "npm": "@ai-sdk/openai-compatible",
+            "name": "LM Studio (local)",
+            "options": {
+                "baseURL": "http://127.0.0.1:1234/v1"
+            },
+            "models": {
+                "google/gemma-4-26b-a4b-qat": {
+                    "name": "Gemma 4 26B A4B QAT (local)",
+                    "limit": {
+                        "context": 131072,
+                        "output": 16384
+                    }
+                }
+            }
+        }
+    },
+    "plugin": [
+        [
+            "./plugins/subagent-model-alias",
+            {
+                "models": [
+                    {
+                        "name": "terra",
+                        "model": "openai/gpt-5.6-terra",
+                        "when": "Deep reasoning, complex analysis, security-sensitive reviews."
+                    },
+                    {
+                        "name": "luna",
+                        "model": "openai/gpt-5.6-luna",
+                        "when": "Minimal reasoning but uniform tasks."
+                    },
+                    {
+                        "name": "gemma",
+                        "model": "lmstudio/google/gemma-4-26b-a4b-qat",
+                        "when": "Open weights model, free to use, fast mechanical tasks: renames, sweeps, formatting, lookups."
+                    }
+                ]
+            }
+        ]
+    ],
+    "permission": {
+        "external_directory": {
+            "~/.config/opencode/skills/**": "allow",
+            "~/.config/opencode/rules/**": "allow"
+        }
     }
-  }
 }
