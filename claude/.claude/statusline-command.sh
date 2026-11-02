@@ -72,21 +72,22 @@ fi
 
 model_part="${c_model}  ${model}${c_reset}"
 
-if [ -n "$rate_5h" ] && [ -n "$rate_7d" ]; then
+rate_colour_for() {
+    if [ "$1" -ge 90 ]; then
+        echo "$c_danger"
+    elif [ "$1" -ge 60 ]; then
+        echo "$c_warn"
+    else
+        echo "$c_rate_low"
+    fi
+}
+
+rate_text=""
+rate_max=0
+
+if [ -n "$rate_5h" ]; then
     rate_5h_int=$(printf '%.0f' "$rate_5h")
-    rate_7d_int=$(printf '%.0f' "$rate_7d")
-    if [ "$rate_5h_int" -ge "$rate_7d_int" ]; then
-        rate_max="$rate_5h_int"
-    else
-        rate_max="$rate_7d_int"
-    fi
-    if [ "$rate_max" -ge 90 ]; then
-        rate_colour="$c_danger"
-    elif [ "$rate_max" -ge 60 ]; then
-        rate_colour="$c_warn"
-    else
-        rate_colour="$c_rate_low"
-    fi
+    [ "$rate_5h_int" -gt "$rate_max" ] && rate_max="$rate_5h_int"
     if [ -n "$reset_5h_at" ]; then
         reset_5h_ampm=$(fmt_epoch "$reset_5h_at" '%-I:%M%p' | tr -d '.' | tr '[:upper:]' '[:lower:]')
         reset_5h_time="${reset_5h_ampm} $(fmt_epoch "$reset_5h_at" %Z)"
@@ -98,13 +99,23 @@ if [ -n "$rate_5h" ] && [ -n "$rate_7d" ]; then
     else
         reset_5h_str=""
     fi
+    rate_text="5h ${rate_5h_int}%${reset_5h_str}"
+fi
+
+if [ -n "$rate_7d" ]; then
+    rate_7d_int=$(printf '%.0f' "$rate_7d")
+    [ "$rate_7d_int" -gt "$rate_max" ] && rate_max="$rate_7d_int"
     if [ -n "$reset_7d_at" ]; then
         d=$(fmt_epoch "$reset_7d_at" %-d)
         reset_7d_str=" →  $(fmt_epoch "$reset_7d_at" %a) ${d}$(ordinal_suffix "$d") $(fmt_epoch "$reset_7d_at" %b)"
     else
         reset_7d_str=""
     fi
-    rate_part="${rate_colour}󰥔  5h ${rate_5h_int}%${reset_5h_str} · 7d ${rate_7d_int}%${reset_7d_str}${c_reset}"
+    rate_text="${rate_text:+$rate_text · }7d ${rate_7d_int}%${reset_7d_str}"
+fi
+
+if [ -n "$rate_text" ]; then
+    rate_part="$(rate_colour_for "$rate_max")󰥔  ${rate_text}${c_reset}"
 else
     rate_part=""
 fi
