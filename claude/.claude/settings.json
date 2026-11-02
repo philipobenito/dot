@@ -27,6 +27,20 @@
       "~/.claude/skills"
     ]
   },
+  "model": "fable",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/sh -c 'rex __internal session-start --agent claude --feature-session-naming=false 2>/dev/null || true'",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  },
   "statusLine": {
     "type": "command",
     "command": "bash ~/.claude/statusline-command.sh"
@@ -61,8 +75,15 @@
     }
   },
   "outputStyle": "Explanatory",
+  "feedbackDrafts": "off",
   "effortLevel": "high",
+  "modelSettings": {
+    "claude-opus-5-5": {
+      "effortLevel": "high"
+    }
+  },
   "promptSuggestionEnabled": false,
+  "awaySummaryEnabled": false,
   "tui": "fullscreen",
   "voice": {
     "enabled": true,
@@ -73,5 +94,9 @@
   "editorMode": "normal",
   "verbose": false,
   "preferredNotifChannel": "auto",
+  "fileCheckpointingEnabled": false,
+  "remoteControlAtStartup": true,
+  "inputNeededNotifEnabled": true,
+  "agentPushNotifEnabled": true,
   "voiceEnabled": true
 }
